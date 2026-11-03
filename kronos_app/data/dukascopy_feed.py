@@ -100,6 +100,18 @@ class DukascopyFeed:
             return True, f"FRESH (Age: {int(age.total_seconds() // 60)}m)"
         return False, f"STALE (Age: {int(age.total_seconds() // 3600)}h > max {int(max_tolerable.total_seconds() // 3600)}h)"
 
+    def is_cache_fresh(self, timeframe: str) -> bool:
+        """Helper to check if cached parquet file exists and is fresh."""
+        cache_path = self.get_cache_path(timeframe)
+        if not cache_path.exists():
+            return False
+        try:
+            df = pd.read_parquet(cache_path)
+            fresh, _ = self.check_cache_freshness(df, timeframe)
+            return fresh
+        except Exception:
+            return False
+
     def validate_ohlc(self, df: pd.DataFrame, timeframe: str) -> Tuple[pd.DataFrame, Dict[str, Any]]:
         """Strictly validates OHLC integrity:
         - Drops incomplete forming live candle

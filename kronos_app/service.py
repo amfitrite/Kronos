@@ -146,13 +146,13 @@ class KronosService:
                     last_sync = last_ts.strftime("%Y-%m-%d %H:%M UTC")
                     last_price = float(df["close"].iloc[-1])
 
-                    is_fresh = self.feed.is_cache_fresh(self.current_timeframe)
+                    is_fresh, freshness_reason = self.feed.check_cache_freshness(df, self.current_timeframe)
                     if is_fresh:
                         data_status = "VALID"
-                        freshness_label = "LIVE FRESH"
+                        freshness_label = f"LIVE FRESH ({freshness_reason})"
                     else:
                         data_status = "STALE"
-                        freshness_label = "STALE (Needs Refresh)"
+                        freshness_label = f"STALE ({freshness_reason})"
             except Exception as e:
                 logger.warning(f"Error checking cache status: {e}")
                 data_status = "CORRUPT"

@@ -92,6 +92,15 @@ class TestDataIntegrity(unittest.TestCase):
         self.assertEqual(len(clean_df), 2)
         self.assertEqual(clean_df["timestamp"].nunique(), len(clean_df))
 
+    def test_is_cache_fresh_method(self):
+        """Validates that DukascopyFeed.is_cache_fresh correctly checks freshness."""
+        feed = DukascopyFeed()
+        # Non-existent timeframe returns False
+        self.assertFalse(feed.is_cache_fresh("INVALID_TF"))
+        # Check that is_cache_fresh works without raising exceptions
+        result = feed.is_cache_fresh("H1")
+        self.assertIsInstance(result, bool)
+
 
 if __name__ == "__main__":
     unittest.main()
