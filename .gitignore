@@ -1,0 +1,27 @@
+# Python bytecode & environments
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+
+# Cached data & user session state
+data/*.parquet
+data/last_session.json
+
+# Upstream cloned repository
+kronos_repo/
+
+# Logs & temp files
+*.log
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# IDEs
+.vscode/
+.idea/

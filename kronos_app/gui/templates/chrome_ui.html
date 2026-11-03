@@ -1,0 +1,1436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kronos Foundation Core | XAUUSD</title>
+  <style>
+    :root {
+      --bg-window: #1f1f23;
+      --bg-toolbar: #2b2d31;
+      --bg-content: #141517;
+      --bg-card: #1e2024;
+      --bg-card-border: #2e3138;
+      --text-main: #f2f3f5;
+      --text-muted: #949ba4;
+      --accent-blue: #3b82f6;
+      --accent-green: #10b981;
+      --accent-red: #ef4444;
+      --accent-cyan: #06b6d4;
+      --accent-yellow: #f59e0b;
+      --hover-btn: #383a40;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-window);
+      color: var(--text-main);
+      overflow: hidden;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* --- Unified App Header (Draggable Chrome Frameless) --- */
+    .app-header {
+      height: 44px;
+      background-color: var(--bg-window);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-left: 14px;
+      padding-right: 0;
+      border-bottom: 1px solid #22242a;
+      -webkit-app-region: drag;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      height: 100%;
+      -webkit-app-region: no-drag;
+    }
+
+    .app-brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #ffffff;
+      letter-spacing: 0.3px;
+    }
+
+    .app-logo {
+      width: 20px;
+      height: 20px;
+      background: linear-gradient(135deg, #10b981, #06b6d4);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 900;
+      color: #000;
+    }
+
+    .tabs-container {
+      display: flex;
+      align-items: center;
+      height: 100%;
+      gap: 4px;
+    }
+
+    .header-tab {
+      height: 30px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 0 14px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      border-radius: 6px;
+      cursor: pointer;
+      background: transparent;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .header-tab:hover {
+      background: #282a30;
+      color: var(--text-main);
+    }
+
+    .header-tab.active {
+      background: #2e3138;
+      color: #ffffff;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      height: 100%;
+      gap: 8px;
+      -webkit-app-region: no-drag;
+    }
+
+    /* Status & Controls */
+    .status-strip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .pill {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 9px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #1f2125;
+      border: 1px solid #2e3238;
+      color: #e5e7eb;
+    }
+
+    .pill-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+    }
+
+    .pill-green .pill-dot { background: var(--accent-green); box-shadow: 0 0 6px var(--accent-green); }
+    .pill-blue .pill-dot { background: var(--accent-blue); box-shadow: 0 0 6px var(--accent-blue); }
+
+    .selector-select {
+      background: #23252a;
+      border: 1px solid #374151;
+      color: #e5e7eb;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 8px;
+      border-radius: 6px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .btn-run {
+      background: var(--accent-green);
+      color: #000;
+      font-weight: 700;
+      font-size: 12px;
+      padding: 6px 14px;
+      border-radius: 14px;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: opacity 0.15s, transform 0.1s;
+      min-width: 130px;
+      justify-content: center;
+    }
+
+    .btn-run:hover { opacity: 0.9; }
+    .btn-run:active { transform: scale(0.97); }
+    .btn-run.busy {
+      background: #2563eb;
+      color: #fff;
+      cursor: wait;
+    }
+
+    /* Window Controls */
+    .window-controls {
+      display: flex;
+      height: 100%;
+      margin-left: 4px;
+    }
+
+    .win-btn {
+      width: 44px;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #999;
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .win-btn:hover { background: var(--hover-btn); color: #fff; }
+    .win-btn.close:hover { background: #e81123; color: #fff; }
+
+    /* Content Area */
+    .main-viewport {
+      flex: 1;
+      background: var(--bg-content);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .view-panel {
+      flex: 1;
+      display: none;
+      flex-direction: column;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    .view-panel.active { display: flex; }
+
+    /* Subheader Strip */
+    .sub-strip {
+      padding: 10px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #18191c;
+      border-bottom: 1px solid #22242a;
+    }
+
+    .price-highlight {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+    }
+
+    .inst-label {
+      font-size: 18px;
+      font-weight: 800;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .tag-badge {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: #2a2d34;
+      color: #f59e0b;
+      border: 1px solid #45391c;
+    }
+
+    .current-px {
+      font-size: 24px;
+      font-weight: 800;
+      color: #ffffff;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .meta-metrics {
+      display: flex;
+      gap: 16px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .meta-metrics span strong { color: #e5e7eb; }
+
+    /* Chart Area */
+    .chart-container {
+      flex: 1;
+      position: relative;
+      background: #121316;
+      padding: 10px 20px;
+      display: flex;
+      flex-direction: column;
+      min-height: 280px;
+    }
+
+    .chart-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .chart-legend {
+      display: flex;
+      gap: 16px;
+      font-size: 11.5px;
+      font-weight: 500;
+      color: #9ca3af;
+    }
+
+    .legend-item { display: flex; align-items: center; gap: 6px; }
+    .leg-box { width: 12px; height: 8px; border-radius: 2px; }
+
+    #kronosCanvas {
+      width: 100%;
+      height: 100%;
+      flex: 1;
+      display: block;
+      cursor: crosshair;
+    }
+
+    #kronosCanvas.panning { cursor: grabbing !important; }
+
+    /* Floating Toolbar */
+    .chart-floating-toolbar {
+      position: absolute;
+      top: 42px;
+      right: 24px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(20, 22, 26, 0.92);
+      backdrop-filter: blur(8px);
+      border: 1px solid #2d313b;
+      padding: 4px 8px;
+      border-radius: 6px;
+      z-index: 10;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    }
+
+    .mode-btn-group {
+      display: flex;
+      gap: 2px;
+      background: #191b20;
+      padding: 2px;
+      border-radius: 4px;
+      border: 1px solid #2d313b;
+    }
+
+    .mode-btn {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 3px;
+      background: transparent;
+      color: #9ca3af;
+      border: none;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .mode-btn:hover { color: #fff; }
+    .mode-btn.active { background: #374151; color: #38bdf8; }
+
+    .tool-sep { width: 1px; height: 16px; background: #374151; margin: 0 2px; }
+
+    .tool-btn {
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #252830;
+      color: #e5e7eb;
+      font-size: 12px;
+      font-weight: 700;
+      border-radius: 4px;
+      cursor: pointer;
+      border: 1px solid #374151;
+      transition: all 0.15s;
+    }
+
+    .tool-btn:hover { background: #374151; color: #38bdf8; border-color: #38bdf8; }
+    .tool-btn.reset { width: auto; padding: 0 8px; font-size: 11px; font-weight: 600; color: #9ca3af; }
+
+    /* Bottom Multi-Horizon Deck */
+    .horizon-cards-deck {
+      min-height: 160px;
+      max-height: 185px;
+      background: #16171a;
+      border-top: 1px solid #22242a;
+      display: flex;
+      gap: 12px;
+      padding: 10px 16px;
+      overflow-x: auto;
+      overflow-y: hidden;
+    }
+
+    .horizon-card {
+      flex: 1 0 230px;
+      min-width: 230px;
+      max-width: 360px;
+      background: var(--bg-card);
+      border: 1px solid var(--bg-card-border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+
+    .horizon-card:hover { border-color: #4b5563; }
+
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11.5px;
+      font-weight: 700;
+      color: #9ca3af;
+      border-bottom: 1px solid #282a30;
+      padding-bottom: 4px;
+    }
+
+    .card-tag {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-weight: 700;
+    }
+
+    .tag-bull { background: rgba(16, 185, 129, 0.15); color: var(--accent-green); border: 1px solid rgba(16, 185, 129, 0.3); }
+    .tag-bear { background: rgba(239, 68, 68, 0.15); color: var(--accent-red); border: 1px solid rgba(239, 68, 68, 0.3); }
+
+    .card-metric-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      margin-top: 4px;
+    }
+
+    .val-med {
+      font-size: 16px;
+      font-weight: 800;
+      color: #ffffff;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .val-up { color: var(--accent-green); font-weight: 700; }
+    .val-down { color: var(--accent-red); font-weight: 700; }
+
+    .prob-bar-container {
+      width: 100%;
+      height: 6px;
+      background: #2a2d34;
+      border-radius: 3px;
+      overflow: hidden;
+      display: flex;
+      margin: 6px 0;
+    }
+
+    .prob-bar-up { height: 100%; background: var(--accent-green); transition: width 0.3s; }
+    .prob-bar-down { height: 100%; background: var(--accent-red); transition: width 0.3s; }
+
+    /* Tab 2: Tokenizer Inspector */
+    .token-view {
+      padding: 20px 30px;
+      overflow-y: auto;
+      gap: 16px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .token-card {
+      background: var(--bg-card);
+      border: 1px solid var(--bg-card-border);
+      border-radius: 8px;
+      padding: 16px 20px;
+    }
+
+    .token-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+      font-size: 12px;
+    }
+
+    .token-table th {
+      text-align: left;
+      padding: 8px 10px;
+      background: #18191c;
+      color: #9ca3af;
+      border-bottom: 1px solid #2e3138;
+      font-weight: 600;
+    }
+
+    .token-table td {
+      padding: 6px 10px;
+      border-bottom: 1px solid #22252a;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .tok-badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-weight: 700;
+      font-size: 11px;
+    }
+    .tok-pre { background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4); }
+    .tok-post { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); }
+
+    /* Tooltip */
+    #chartTooltip {
+      position: absolute;
+      display: none;
+      background: rgba(18, 20, 24, 0.94);
+      backdrop-filter: blur(6px);
+      border: 1px solid #374151;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 11.5px;
+      pointer-events: none;
+      z-index: 100;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.5);
+      line-height: 1.4;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Unified App Header -->
+  <header class="app-header">
+    <div class="header-left">
+      <nav class="tabs-container">
+        <div class="app-logo" style="margin-right: 6px; cursor: default;" title="Kronos Foundation Core">K</div>
+        <div class="header-tab active" data-tab="tab-forecast">📊 Forecast Canvas</div>
+        <div class="header-tab" data-tab="tab-tokenizer">🧬 Tokenizer Inspector</div>
+        <div class="header-tab" data-tab="tab-about">ℹ️ Architecture</div>
+      </nav>
+    </div>
+
+    <div class="header-right">
+      <div class="status-strip">
+        <!-- Model Engine Selector -->
+        <select class="selector-select" id="modelSelect" title="Pilih Engine AI">
+          <option value="mini" selected>⚡ Turbo Mode (Kronos-mini 4.1M)</option>
+          <option value="base">🧠 Deep Mode (Kronos-base 102M)</option>
+        </select>
+
+        <div class="pill pill-blue" id="pillData">
+          <div class="pill-dot"></div>
+          <span id="dataStatusText">Dukascopy (H1)</span>
+        </div>
+
+        <select class="selector-select" id="timeframeSelect" title="Pilih Timeframe Candle">
+          <option value="M1">Timeframe: M1 (Scalping)</option>
+          <option value="M5">Timeframe: M5 (Fast Intraday)</option>
+          <option value="M15">Timeframe: M15 (Intraday)</option>
+          <option value="H1" selected>Timeframe: H1 (Standard)</option>
+          <option value="H4">Timeframe: H4 (Swing)</option>
+          <option value="D1">Timeframe: D1 (Daily Swing)</option>
+        </select>
+
+        <select class="selector-select" id="horizonSelect" title="Rentang Waktu Proyeksi">
+          <option value="4H">Forecast: 4 Jam (4H)</option>
+          <option value="12H">Forecast: 12 Jam (12H)</option>
+          <option value="1D" selected>Forecast: 1 Hari (1D)</option>
+          <option value="2D">Forecast: 2 Hari (2D)</option>
+          <option value="3D">Forecast: 3 Hari (3D)</option>
+          <option value="1W">Forecast: 1 Minggu (1W)</option>
+          <option value="2W">Forecast: 2 Minggu (2W)</option>
+        </select>
+
+        <select class="selector-select" id="sampleCountSelect" title="Jumlah Jalur Monte Carlo">
+          <option value="5" selected>5 MC Paths (Instant)</option>
+          <option value="10">10 MC Paths</option>
+          <option value="20">20 MC Paths</option>
+        </select>
+
+        <button class="btn-run" id="btnRunForecast">
+          <span id="btnRunText">⚡ Run Forecast</span>
+        </button>
+      </div>
+
+      <div class="window-controls">
+        <div class="win-btn" id="winMin">—</div>
+        <div class="win-btn" id="winMax">□</div>
+        <div class="win-btn close" id="winClose">✕</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Viewport -->
+  <main class="main-viewport">
+    
+    <!-- Tab 1: Forecast Canvas -->
+    <div class="view-panel active" id="tab-forecast">
+      <div class="sub-strip">
+        <div class="price-highlight">
+          <div class="inst-label">
+            <span>XAU/USD</span>
+            <span class="tag-badge">SWISS ECN SPOT</span>
+          </div>
+          <div class="current-px" id="lblLivePrice">----.--</div>
+          <span style="font-size: 12px; color: var(--accent-green);" id="lblPriceDelta">--</span>
+        </div>
+
+        <div class="meta-metrics">
+          <span>ATR (14): <strong id="lblAtr">--</strong></span>
+          <span>Last Sync: <strong id="lblLastSync">--</strong></span>
+          <span>Engine Status: <strong id="lblInferTime" style="color:var(--accent-green);">Ready</strong></span>
+        </div>
+      </div>
+
+      <div class="chart-container" id="chartWrapper">
+        <div class="chart-title-row">
+          <div class="chart-legend">
+            <div class="legend-item"><div class="leg-box" style="background: #10b981;"></div> Bullish Real</div>
+            <div class="legend-item"><div class="leg-box" style="background: #ef4444;"></div> Bearish Real</div>
+            <div class="legend-item"><div class="leg-box" style="background: #38bdf8;"></div> Median P50</div>
+            <div class="legend-item"><div class="leg-box" style="background: rgba(56, 189, 248, 0.35);"></div> P25-P75 Core</div>
+            <div class="legend-item"><div class="leg-box" style="background: rgba(6, 182, 212, 0.15);"></div> P10-P90 Corridor</div>
+            <div class="legend-item"><div class="leg-box" style="background: rgba(16, 185, 129, 0.4); border: 1px dashed #10b981;"></div> Ghost Candle</div>
+          </div>
+        </div>
+
+        <!-- Floating Controls Toolbar -->
+        <div class="chart-floating-toolbar">
+          <div class="mode-btn-group">
+            <button class="mode-btn active" id="modeHybrid">🔀 Hybrid</button>
+            <button class="mode-btn" id="modeFan">📊 Fan Chart</button>
+            <button class="mode-btn" id="modeGhost">🕯️ Ghost Candles</button>
+          </div>
+          <div class="tool-sep"></div>
+          <div class="tool-btn" id="btnZoomIn" title="Zoom In">+</div>
+          <div class="tool-btn" id="btnZoomOut" title="Zoom Out">-</div>
+          <div class="tool-btn reset" id="btnResetView" title="Reset View">↺ Reset</div>
+        </div>
+
+        <canvas id="kronosCanvas"></canvas>
+        <div id="chartTooltip"></div>
+      </div>
+
+      <!-- Multi-Horizon Deck Cards -->
+      <div class="horizon-cards-deck" id="horizonDeck">
+        <div class="horizon-card">
+          <div class="card-top">
+            <span>+4 BARS (+4H)</span>
+            <span class="card-tag tag-bull">AWAITING RUN</span>
+          </div>
+          <div class="card-metric-row">
+            <span style="color: var(--text-muted);">Target Price</span>
+            <span class="val-med">--</span>
+          </div>
+          <div class="prob-bar-container"><div class="prob-bar-up" style="width: 50%;"></div><div class="prob-bar-down" style="width: 50%;"></div></div>
+          <div class="card-metric-row"><span class="val-up">Up: --%</span><span class="val-down">Down: --%</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab 2: Tokenizer Inspector -->
+    <div class="view-panel" id="tab-tokenizer">
+      <div class="token-view">
+        <div class="token-card">
+          <h3 style="font-size: 15px; margin-bottom: 6px;">Binary Spherical Quantization (BSQ) Token Matrix</h3>
+          <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">
+            Kronos memetakan K-line kontinu ke dalam representasi diskret menggunakan 2-tahap token hierarki: <strong>Token Pre</strong> (morfologi body & wicks) dan <strong>Token Post</strong> (momentum & relasi volume).
+          </p>
+          <div style="max-height: 520px; overflow-y: auto;">
+            <table class="token-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Timestamp (UTC)</th>
+                  <th>Open</th>
+                  <th>High</th>
+                  <th>Low</th>
+                  <th>Close</th>
+                  <th>Volume</th>
+                  <th>Token Pre (S1)</th>
+                  <th>Token Post (S2)</th>
+                </tr>
+              </thead>
+              <tbody id="tokenTableBody">
+                <tr><td colspan="9" style="text-align: center; color: var(--text-muted); padding: 20px;">Klik 'Run Forecast' untuk memuat matrix token.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab 3: About Architecture -->
+    <div class="view-panel" id="tab-about">
+      <div class="token-view">
+        <div class="token-card">
+          <h3 style="font-size: 16px; margin-bottom: 10px;">Kronos Foundation Model Architecture</h3>
+          <p style="font-size: 13px; line-height: 1.6; color: #d1d5db; margin-bottom: 14px;">
+            <strong>Kronos</strong> adalah *Decoder-Only Autoregressive Foundation Model* yang dikembangkan oleh peneliti dari Tsinghua University untuk memodelkan "bahasa" pasar keuangan global.
+          </p>
+          <ul style="font-size: 12.5px; line-height: 1.8; color: var(--text-muted); margin-left: 20px;">
+            <li><strong>Turbo Engine:</strong> Kronos-mini (4.1M parameter, latensi inferensi ~0.8 detik).</li>
+            <li><strong>Deep Engine:</strong> Kronos-base (102.3M parameter, analisis representasi makro).</li>
+            <li><strong>Pre-training Corpus:</strong> >12 Miliar bar K-line dari 45 bursa global.</li>
+            <li><strong>Data Engine:</strong> Dukascopy Bank Swiss ECN (Tick & Hourly feeds murni).</li>
+            <li><strong>Asynchronous Threading:</strong> Pemrosesan non-blocking di background thread, UI 100% mulus 60 FPS tanpa freeze.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    let currentForecastData = null;
+    let viewMode = 'hybrid';
+    let isRunning = false;
+    let pollTimer = null;
+    let t0 = 0;
+
+    const canvas = document.getElementById('kronosCanvas');
+    const ctx = canvas.getContext('2d');
+    const tooltip = document.getElementById('chartTooltip');
+
+    let zoomLevel = 1.0;
+    let panOffset = 0;
+    let isDragging = false;
+    let dragStartX = 0;
+    let hoverIndex = -1;
+
+    // Tab Switching
+    document.querySelectorAll('.header-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.header-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.view-panel').forEach(p => p.classList.remove('active'));
+        tab.classList.add('active');
+        const target = document.getElementById(tab.dataset.tab);
+        if (target) target.classList.add('active');
+        if (tab.dataset.tab === 'tab-forecast') renderChart();
+      });
+    });
+
+    // Mode Buttons
+    const btnHybrid = document.getElementById('modeHybrid');
+    const btnFan = document.getElementById('modeFan');
+    const btnGhost = document.getElementById('modeGhost');
+
+    function setViewMode(mode) {
+      viewMode = mode;
+      btnHybrid.classList.toggle('active', mode === 'hybrid');
+      btnFan.classList.toggle('active', mode === 'fan');
+      btnGhost.classList.toggle('active', mode === 'ghost');
+      try { localStorage.setItem('kronos_view_mode', mode); } catch (e) {}
+      renderChart();
+    }
+    btnHybrid.addEventListener('click', () => setViewMode('hybrid'));
+    btnFan.addEventListener('click', () => setViewMode('fan'));
+    btnGhost.addEventListener('click', () => setViewMode('ghost'));
+
+    // Zoom & Pan
+    document.getElementById('btnZoomIn').addEventListener('click', () => { zoomLevel = Math.min(3.0, zoomLevel * 1.25); renderChart(); });
+    document.getElementById('btnZoomOut').addEventListener('click', () => { zoomLevel = Math.max(0.4, zoomLevel / 1.25); renderChart(); });
+    document.getElementById('btnResetView').addEventListener('click', () => { zoomLevel = 1.0; panOffset = 0; renderChart(); });
+
+    canvas.addEventListener('mousedown', (e) => { isDragging = true; dragStartX = e.clientX - panOffset; canvas.classList.add('panning'); });
+    window.addEventListener('mouseup', () => { isDragging = false; canvas.classList.remove('panning'); });
+    window.addEventListener('mousemove', (e) => {
+      if (isDragging) { panOffset = e.clientX - dragStartX; renderChart(); }
+      handleCanvasHover(e);
+    });
+    canvas.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
+      zoomLevel = Math.max(0.4, Math.min(3.5, zoomLevel * zoomFactor));
+      renderChart();
+    }, { passive: false });
+
+    // Window Controls
+    document.getElementById('winMin').addEventListener('click', () => { if (window.pywebview && window.pywebview.api) window.pywebview.api.minimize_window(); });
+    document.getElementById('winMax').addEventListener('click', () => { if (window.pywebview && window.pywebview.api) window.pywebview.api.toggle_maximize(); });
+    document.getElementById('winClose').addEventListener('click', () => { if (window.pywebview && window.pywebview.api) window.pywebview.api.close_window(); });
+
+    function resizeCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      ctx.resetTransform();
+      ctx.scale(dpr, dpr);
+      renderChart();
+    }
+    window.addEventListener('resize', resizeCanvas);
+
+    // Chart Renderer
+    function renderChart() {
+      const rect = canvas.getBoundingClientRect();
+      const w = rect.width;
+      const h = rect.height;
+      ctx.clearRect(0, 0, w, h);
+
+      if (!currentForecastData || !currentForecastData.history) {
+        ctx.fillStyle = "#6b7280";
+        ctx.font = "14px -apple-system, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("Klik 'Run Forecast' untuk menjalankan prediksi Kronos.", w / 2, h / 2);
+        return;
+      }
+
+      const hist = currentForecastData.history;
+      const ghosts = currentForecastData.ghost_candles || [];
+      const fan = currentForecastData.fan_chart || {};
+
+      const nHist = hist.length;
+      const nGhost = ghosts.length;
+      const totalBars = nHist + nGhost;
+
+      const defaultBarWidth = Math.max(4, Math.min(22, (w * 0.88) / totalBars));
+      const barWidth = defaultBarWidth * zoomLevel;
+      const barSpacing = barWidth * 0.35;
+      const slotWidth = barWidth + barSpacing;
+
+      let minP = Infinity;
+      let maxP = -Infinity;
+
+      for (let b of hist) {
+        if (b.low < minP) minP = b.low;
+        if (b.high > maxP) maxP = b.high;
+      }
+      if (fan.p10 && fan.p90) {
+        for (let v of fan.p10) if (v < minP) minP = v;
+        for (let v of fan.p90) if (v > maxP) maxP = v;
+      }
+      for (let g of ghosts) {
+        if (g.low < minP) minP = g.low;
+        if (g.high > maxP) maxP = g.high;
+      }
+
+      const range = maxP - minP || 10;
+      const yMin = minP - range * 0.08;
+      const yMax = maxP + range * 0.08;
+
+      function priceToY(p) { return h - 35 - ((p - yMin) / (yMax - yMin)) * (h - 60); }
+      const chartStartX = 25 + panOffset;
+
+      // Grid Lines
+      ctx.strokeStyle = "#1a1d22";
+      ctx.lineWidth = 1;
+      const priceSteps = 6;
+      for (let s = 0; s <= priceSteps; s++) {
+        const gridP = yMin + (range * s) / priceSteps;
+        const y = priceToY(gridP);
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(w, y);
+        ctx.stroke();
+
+        ctx.fillStyle = "#4b5563";
+        ctx.font = "10.5px monospace";
+        ctx.textAlign = "right";
+        ctx.fillText(gridP.toFixed(2), w - 8, y - 3);
+      }
+
+      // Historical Candlesticks
+      for (let i = 0; i < nHist; i++) {
+        const b = hist[i];
+        const x = chartStartX + i * slotWidth;
+        if (x < -slotWidth || x > w + slotWidth) continue;
+
+        const isBull = b.close >= b.open;
+        const color = isBull ? "#10b981" : "#ef4444";
+
+        const yOpen = priceToY(b.open);
+        const yClose = priceToY(b.close);
+        const yHigh = priceToY(b.high);
+        const yLow = priceToY(b.low);
+
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(x + barWidth / 2, yHigh);
+        ctx.lineTo(x + barWidth / 2, yLow);
+        ctx.stroke();
+
+        ctx.fillStyle = color;
+        const bodyTop = Math.min(yOpen, yClose);
+        const bodyHeight = Math.max(1.5, Math.abs(yOpen - yClose));
+        ctx.fillRect(x, bodyTop, barWidth, bodyHeight);
+      }
+
+      // Divider Line T_0
+      const splitX = chartStartX + nHist * slotWidth - barSpacing / 2;
+      ctx.strokeStyle = "#475569";
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(splitX, 10);
+      ctx.lineTo(splitX, h - 30);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.fillStyle = "#94a3b8";
+      ctx.font = "10px -apple-system, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("T₀ NOW", splitX, 22);
+
+      // Fan Chart
+      if (viewMode === 'fan' || viewMode === 'hybrid') {
+        const p10 = fan.p10 || [];
+        const p25 = fan.p25 || [];
+        const p50 = fan.p50 || [];
+        const p75 = fan.p75 || [];
+        const p90 = fan.p90 || [];
+
+        const lastBar = hist[nHist - 1];
+        const startX = chartStartX + (nHist - 1) * slotWidth + barWidth / 2;
+        const startY = priceToY(lastBar.close);
+
+        // P10-P90
+        ctx.fillStyle = "rgba(6, 182, 212, 0.12)";
+        ctx.beginPath();
+        ctx.moveTo(startX, startY);
+        for (let t = 0; t < nGhost; t++) {
+          const x = chartStartX + (nHist + t) * slotWidth + barWidth / 2;
+          ctx.lineTo(x, priceToY(p90[t]));
+        }
+        for (let t = nGhost - 1; t >= 0; t--) {
+          const x = chartStartX + (nHist + t) * slotWidth + barWidth / 2;
+          ctx.lineTo(x, priceToY(p10[t]));
+        }
+        ctx.closePath();
+        ctx.fill();
+
+        // P25-P75
+        ctx.fillStyle = "rgba(56, 189, 248, 0.25)";
+        ctx.beginPath();
+        ctx.moveTo(startX, startY);
+        for (let t = 0; t < nGhost; t++) {
+          const x = chartStartX + (nHist + t) * slotWidth + barWidth / 2;
+          ctx.lineTo(x, priceToY(p75[t]));
+        }
+        for (let t = nGhost - 1; t >= 0; t--) {
+          const x = chartStartX + (nHist + t) * slotWidth + barWidth / 2;
+          ctx.lineTo(x, priceToY(p25[t]));
+        }
+        ctx.closePath();
+        ctx.fill();
+
+        // Raw paths
+        if (fan.raw_paths) {
+          ctx.lineWidth = 0.8;
+          ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
+          for (let path of fan.raw_paths) {
+            ctx.beginPath();
+            ctx.moveTo(startX, startY);
+            for (let t = 0; t < nGhost; t++) {
+              const x = chartStartX + (nHist + t) * slotWidth + barWidth / 2;
+              ctx.lineTo(x, priceToY(path[t]));
+            }
+            ctx.stroke();
+          }
+        }
+
+        // P50 Median Line
+        ctx.strokeStyle = "#38bdf8";
+        ctx.lineWidth = 2.4;
+        ctx.beginPath();
+        ctx.moveTo(startX, startY);
+        for (let t = 0; t < nGhost; t++) {
+          const x = chartStartX + (nHist + t) * slotWidth + barWidth / 2;
+          ctx.lineTo(x, priceToY(p50[t]));
+        }
+        ctx.stroke();
+      }
+
+      // Ghost Candlesticks
+      if (viewMode === 'ghost' || viewMode === 'hybrid') {
+        for (let t = 0; t < nGhost; t++) {
+          const g = ghosts[t];
+          const x = chartStartX + (nHist + t) * slotWidth;
+          if (x < -slotWidth || x > w + slotWidth) continue;
+
+          const isBull = g.close >= g.open;
+          const strokeCol = isBull ? "#10b981" : "#ef4444";
+          const fillCol = isBull ? "rgba(16, 185, 129, 0.35)" : "rgba(239, 68, 68, 0.35)";
+
+          const yOpen = priceToY(g.open);
+          const yClose = priceToY(g.close);
+          const yHigh = priceToY(g.high);
+          const yLow = priceToY(g.low);
+
+          ctx.strokeStyle = strokeCol;
+          ctx.lineWidth = 1.0;
+          ctx.setLineDash([2, 2]);
+          ctx.beginPath();
+          ctx.moveTo(x + barWidth / 2, yHigh);
+          ctx.lineTo(x + barWidth / 2, yLow);
+          ctx.stroke();
+          ctx.setLineDash([]);
+
+          ctx.fillStyle = fillCol;
+          ctx.strokeStyle = strokeCol;
+          ctx.lineWidth = 1.2;
+          const bodyTop = Math.min(yOpen, yClose);
+          const bodyHeight = Math.max(1.5, Math.abs(yOpen - yClose));
+          ctx.fillRect(x, bodyTop, barWidth, bodyHeight);
+          ctx.strokeRect(x, bodyTop, barWidth, bodyHeight);
+        }
+      }
+
+      // Crosshair
+      if (hoverIndex >= 0 && hoverIndex < totalBars) {
+        const hoverX = chartStartX + hoverIndex * slotWidth + barWidth / 2;
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.25)";
+        ctx.setLineDash([3, 3]);
+        ctx.beginPath();
+        ctx.moveTo(hoverX, 0);
+        ctx.lineTo(hoverX, h - 30);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+    }
+
+    // Tooltip
+    function handleCanvasHover(e) {
+      if (!currentForecastData || !currentForecastData.history) return;
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+
+      const hist = currentForecastData.history;
+      const ghosts = currentForecastData.ghost_candles || [];
+      const totalBars = hist.length + ghosts.length;
+
+      const defaultBarWidth = Math.max(4, Math.min(22, (rect.width * 0.88) / totalBars));
+      const barWidth = defaultBarWidth * zoomLevel;
+      const slotWidth = barWidth * 1.35;
+      const chartStartX = 25 + panOffset;
+
+      const index = Math.floor((mouseX - chartStartX) / slotWidth);
+      if (index >= 0 && index < totalBars) {
+        hoverIndex = index;
+        let html = '';
+        if (index < hist.length) {
+          const b = hist[index];
+          html = `
+            <div style="font-weight:700; color:#38bdf8; margin-bottom:3px;">Historical Bar #${index + 1}</div>
+            <div>Time: ${b.timestamp}</div>
+            <div>Open: <strong>${b.open}</strong></div>
+            <div>High: <strong style="color:var(--accent-green);">${b.high}</strong></div>
+            <div>Low: <strong style="color:var(--accent-red);">${b.low}</strong></div>
+            <div>Close: <strong>${b.close}</strong></div>
+            <div>Volume: ${b.volume}</div>
+          `;
+        } else {
+          const g = ghosts[index - hist.length];
+          const fan = currentForecastData.fan_chart;
+          const gIdx = index - hist.length;
+          html = `
+            <div style="font-weight:700; color:#10b981; margin-bottom:3px;">Kronos Ghost Forecast #${g.step}</div>
+            <div>Time: ${g.timestamp}</div>
+            <div>P50 Median: <strong style="color:#38bdf8;">${g.close}</strong></div>
+            <div>Range P10-P90: ${fan.p10[gIdx]} - ${fan.p90[gIdx]}</div>
+            <div>High/Low: ${g.high} / ${g.low}</div>
+            <div>Bias: <strong style="color:${g.is_bullish ? 'var(--accent-green)' : 'var(--accent-red)'}">${g.is_bullish ? 'BULLISH' : 'BEARISH'}</strong></div>
+          `;
+        }
+
+        tooltip.innerHTML = html;
+        tooltip.style.display = 'block';
+        tooltip.style.left = `${Math.min(rect.width - 180, mouseX + 16)}px`;
+        tooltip.style.top = `${Math.max(10, mouseY - 20)}px`;
+        renderChart();
+      } else {
+        hoverIndex = -1;
+        tooltip.style.display = 'none';
+        renderChart();
+      }
+    }
+    canvas.addEventListener('mouseleave', () => { hoverIndex = -1; tooltip.style.display = 'none'; renderChart(); });
+
+    // Deck Cards
+    function updateHorizonCards(horizons) {
+      const deck = document.getElementById('horizonDeck');
+      if (!horizons || horizons.length === 0) return;
+
+      deck.innerHTML = '';
+      horizons.forEach(h => {
+        const isBull = h.dominant === 'BULLISH';
+        const card = document.createElement('div');
+        card.className = 'horizon-card';
+        card.innerHTML = `
+          <div class="card-top">
+            <span>${h.horizon.toUpperCase()}</span>
+            <span class="card-tag ${isBull ? 'tag-bull' : 'tag-bear'}">${h.dominant}</span>
+          </div>
+          <div class="card-metric-row">
+            <span style="color: var(--text-muted);">Median Target</span>
+            <span class="val-med">${h.median_price.toFixed(2)}</span>
+          </div>
+          <div class="card-metric-row" style="font-size: 11px;">
+            <span>80% Corridor:</span>
+            <span>${h.range_low.toFixed(2)} - ${h.range_high.toFixed(2)}</span>
+          </div>
+          <div class="prob-bar-container">
+            <div class="prob-bar-up" style="width: ${h.p_up}%;"></div>
+            <div class="prob-bar-down" style="width: ${h.p_down}%;"></div>
+          </div>
+          <div class="card-metric-row">
+            <span class="val-up">Up: ${h.p_up}%</span>
+            <span class="val-down">Down: ${h.p_down}%</span>
+          </div>
+          <div class="card-metric-row" style="font-size: 11px; margin-top:2px;">
+            <span>Delta: <strong style="color:${h.delta_points >= 0 ? 'var(--accent-green)' : 'var(--accent-red)'}">${h.delta_points >= 0 ? '+' : ''}${h.delta_points.toFixed(2)} pts</strong></span>
+            <span style="color:var(--text-muted); font-size:10px;">${h.target_time.slice(5)}</span>
+          </div>
+        `;
+        deck.appendChild(card);
+      });
+    }
+
+    // Token Table
+    function updateTokenTable(tokens) {
+      const tbody = document.getElementById('tokenTableBody');
+      if (!tokens || tokens.length === 0) return;
+      tbody.innerHTML = '';
+      tokens.forEach(tok => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${tok.index + 1}</td>
+          <td>${tok.timestamp}</td>
+          <td>${tok.open.toFixed(2)}</td>
+          <td>${tok.high.toFixed(2)}</td>
+          <td>${tok.low.toFixed(2)}</td>
+          <td>${tok.close.toFixed(2)}</td>
+          <td>${tok.volume.toFixed(1)}</td>
+          <td><span class="tok-badge tok-pre">${tok.token_pre}</span></td>
+          <td><span class="tok-badge tok-post">${tok.token_post}</span></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // --- Asynchronous Non-blocking Execution ---
+    function handleForecastResult(res) {
+      if (pollTimer) clearInterval(pollTimer);
+      pollTimer = null;
+      isRunning = false;
+
+      const btn = document.getElementById('btnRunForecast');
+      btn.classList.remove('busy');
+      btn.disabled = false;
+      document.getElementById('btnRunText').textContent = '⚡ Run Forecast';
+
+      if (res && res.success && res.data) {
+        currentForecastData = res.data;
+        if (res.is_restored) {
+          document.getElementById('lblInferTime').textContent = `📌 Restored (${res.data.model_label || 'Previous Session'})`;
+          document.getElementById('lblInferTime').style.color = '#38bdf8';
+        } else {
+          const elapsed = ((performance.now() - t0) / 1000).toFixed(1);
+          document.getElementById('lblInferTime').textContent = `${elapsed}s (${res.data.model_label || 'Done'})`;
+          document.getElementById('lblInferTime').style.color = "var(--accent-green)";
+        }
+
+        document.getElementById('lblLivePrice').textContent = res.data.last_price.toFixed(2);
+        document.getElementById('lblAtr').textContent = res.data.current_atr.toFixed(2);
+        if (res.data.history.length > 0) {
+          document.getElementById('lblLastSync').textContent = res.data.history[res.data.history.length - 1].timestamp;
+        }
+
+        updateHorizonCards(res.data.horizons);
+        renderChart();
+        loadTokens();
+      } else {
+        const errMsg = res ? res.error : "Unknown error";
+        alert("Forecast error: " + errMsg);
+        document.getElementById('lblInferTime').textContent = 'Error';
+        document.getElementById('lblInferTime').style.color = "var(--accent-red)";
+      }
+    }
+
+    // Direct callback pushed by Python backend
+    window.onForecastCompleted = function(res) {
+      handleForecastResult(res);
+    };
+
+    async function runForecast() {
+      if (isRunning) return;
+      isRunning = true;
+      t0 = performance.now();
+
+      const btn = document.getElementById('btnRunForecast');
+      btn.classList.add('busy');
+      btn.disabled = true;
+      document.getElementById('btnRunText').textContent = '⏳ Starting...';
+      document.getElementById('lblInferTime').textContent = 'Computing in background...';
+      document.getElementById('lblInferTime').style.color = "var(--accent-blue)";
+
+      const modelType = document.getElementById('modelSelect').value;
+      const tf = document.getElementById('timeframeSelect').value;
+      const horizonVal = document.getElementById('horizonSelect').value;
+      const samples = parseInt(document.getElementById('sampleCountSelect').value);
+
+      // Save user choices to localStorage
+      try {
+        localStorage.setItem('kronos_model', modelType);
+        localStorage.setItem('kronos_timeframe', tf);
+        localStorage.setItem('kronos_horizon', horizonVal);
+        localStorage.setItem('kronos_samples', samples);
+      } catch (e) {}
+
+      try {
+        if (window.pywebview && window.pywebview.api) {
+          const raw = await window.pywebview.api.start_forecast(modelType, tf, horizonVal, samples);
+          const startRes = JSON.parse(raw);
+          if (!startRes.success) {
+            handleForecastResult(startRes);
+            return;
+          }
+
+          // Non-blocking Polling for live step progress
+          pollTimer = setInterval(async () => {
+            try {
+              const statusRaw = await window.pywebview.api.get_forecast_status();
+              const status = JSON.parse(statusRaw);
+              if (status.is_computing) {
+                document.getElementById('btnRunText').textContent = `⏳ Step ${status.step}/${status.total} (${status.progress_pct}%)`;
+              } else if (status.has_result) {
+                handleForecastResult(status.result);
+              }
+            } catch (err) {
+              console.warn("Poll status error:", err);
+            }
+          }, 350);
+        }
+      } catch (err) {
+        console.error(err);
+        handleForecastResult({ success: false, error: String(err) });
+      }
+    }
+
+    function updateHorizonLabels(preferredVal) {
+      const tf = document.getElementById('timeframeSelect').value;
+      const hSelect = document.getElementById('horizonSelect');
+      const curVal = preferredVal || hSelect.value || '1D';
+      
+      const horizonsConfig = {
+        'M1': [
+          {v: '15M', l: 'Forecast: 15 Menit (15M)'},
+          {v: '30M', l: 'Forecast: 30 Menit (30M)'},
+          {v: '1H', l: 'Forecast: 1 Jam (1H)'},
+          {v: '4H', l: 'Forecast: 4 Jam (4H)'},
+          {v: '1D', l: 'Forecast: 1 Hari (1D)'}
+        ],
+        'M5': [
+          {v: '1H', l: 'Forecast: 1 Jam (1H)'},
+          {v: '4H', l: 'Forecast: 4 Jam (4H)'},
+          {v: '12H', l: 'Forecast: 12 Jam (12H)'},
+          {v: '1D', l: 'Forecast: 1 Hari (1D)'},
+          {v: '2D', l: 'Forecast: 2 Hari (2D)'}
+        ],
+        'M15': [
+          {v: '4H', l: 'Forecast: 4 Jam (4H)'},
+          {v: '12H', l: 'Forecast: 12 Jam (12H)'},
+          {v: '1D', l: 'Forecast: 1 Hari (1D)'},
+          {v: '2D', l: 'Forecast: 2 Hari (2D)'},
+          {v: '3D', l: 'Forecast: 3 Hari (3D)'},
+          {v: '1W', l: 'Forecast: 1 Minggu (1W)'}
+        ],
+        'H1': [
+          {v: '4H', l: 'Forecast: 4 Jam (4H)'},
+          {v: '12H', l: 'Forecast: 12 Jam (12H)'},
+          {v: '1D', l: 'Forecast: 1 Hari (1D)'},
+          {v: '2D', l: 'Forecast: 2 Hari (2D)'},
+          {v: '3D', l: 'Forecast: 3 Hari (3D)'},
+          {v: '1W', l: 'Forecast: 1 Minggu (1W / 5D)'},
+          {v: '2W', l: 'Forecast: 2 Minggu (2W / 10D)'}
+        ],
+        'H4': [
+          {v: '12H', l: 'Forecast: 12 Jam (12H)'},
+          {v: '1D', l: 'Forecast: 1 Hari (1D)'},
+          {v: '2D', l: 'Forecast: 2 Hari (2D)'},
+          {v: '3D', l: 'Forecast: 3 Hari (3D)'},
+          {v: '1W', l: 'Forecast: 1 Minggu (1W / 5D)'},
+          {v: '2W', l: 'Forecast: 2 Minggu (2W / 10D)'}
+        ],
+        'D1': [
+          {v: '1D', l: 'Forecast: 1 Hari (1D)'},
+          {v: '2D', l: 'Forecast: 2 Hari (2D)'},
+          {v: '3D', l: 'Forecast: 3 Hari (3D)'},
+          {v: '1W', l: 'Forecast: 1 Minggu (1W / 5D)'},
+          {v: '2W', l: 'Forecast: 2 Minggu (2W / 10D)'}
+        ]
+      };
+
+      const list = horizonsConfig[tf] || horizonsConfig['H1'];
+      hSelect.innerHTML = '';
+      let matched = false;
+      list.forEach(item => {
+        const opt = document.createElement('option');
+        opt.value = item.v;
+        opt.textContent = item.l;
+        if (item.v === curVal) {
+          opt.selected = true;
+          matched = true;
+        }
+        hSelect.appendChild(opt);
+      });
+      if (!matched && list.length > 0) {
+        const fallback = list.find(x => x.v === '1D') || list[0];
+        hSelect.value = fallback.v;
+      }
+      document.getElementById('dataStatusText').textContent = `Dukascopy (${tf})`;
+    }
+
+    document.getElementById('modelSelect').addEventListener('change', (e) => {
+      try { localStorage.setItem('kronos_model', e.target.value); } catch(err){}
+    });
+
+    document.getElementById('sampleCountSelect').addEventListener('change', (e) => {
+      try { localStorage.setItem('kronos_samples', e.target.value); } catch(err){}
+    });
+
+    document.getElementById('horizonSelect').addEventListener('change', (e) => {
+      try { localStorage.setItem('kronos_horizon', e.target.value); } catch(err){}
+    });
+
+    document.getElementById('timeframeSelect').addEventListener('change', () => {
+      try { localStorage.setItem('kronos_timeframe', document.getElementById('timeframeSelect').value); } catch(err){}
+      updateHorizonLabels();
+      runForecast();
+    });
+
+    document.getElementById('btnRunForecast').addEventListener('click', runForecast);
+
+    async function loadTokens() {
+      try {
+        if (window.pywebview && window.pywebview.api) {
+          const raw = await window.pywebview.api.get_token_diagnostics();
+          const res = JSON.parse(raw);
+          if (res.success && res.data && res.data.tokens) {
+            updateTokenTable(res.data.tokens);
+          }
+        }
+      } catch (e) {
+        console.warn("Tokens error:", e);
+      }
+    }
+
+    let isSystemInitialized = false;
+    async function initSystem() {
+      if (isSystemInitialized) return;
+      resizeCanvas();
+
+      if (!window.pywebview || !window.pywebview.api) {
+        return;
+      }
+      isSystemInitialized = true;
+
+      // 1. Restore local preferences if available
+      try {
+        const savedModel = localStorage.getItem('kronos_model');
+        if (savedModel && document.getElementById('modelSelect')) {
+          document.getElementById('modelSelect').value = savedModel;
+        }
+
+        const savedTf = localStorage.getItem('kronos_timeframe');
+        if (savedTf && document.getElementById('timeframeSelect')) {
+          document.getElementById('timeframeSelect').value = savedTf;
+        }
+
+        const savedHorizon = localStorage.getItem('kronos_horizon');
+        updateHorizonLabels(savedHorizon);
+
+        const savedSamples = localStorage.getItem('kronos_samples');
+        if (savedSamples && document.getElementById('sampleCountSelect')) {
+          document.getElementById('sampleCountSelect').value = savedSamples;
+        }
+
+        const savedMode = localStorage.getItem('kronos_view_mode');
+        if (savedMode && ['hybrid', 'fan', 'ghost'].includes(savedMode)) {
+          setViewMode(savedMode);
+        }
+      } catch (err) {
+        console.warn("localStorage restore warning:", err);
+      }
+
+      // 2. Fetch live status from backend
+      try {
+        const raw = await window.pywebview.api.get_status();
+        const status = JSON.parse(raw);
+        if (status.last_price > 0) {
+          document.getElementById('lblLivePrice').textContent = status.last_price.toFixed(2);
+          document.getElementById('lblLastSync').textContent = status.last_sync;
+        }
+        if (status.cached_bars > 0) {
+          document.getElementById('dataStatusText').textContent = `Dukascopy (${status.cached_bars} bars)`;
+        }
+      } catch (e) {
+        console.warn("Init status check warning:", e);
+      }
+
+      // 3. Continue where you left off: restore persisted session or run fresh
+      try {
+        const sessionRaw = await window.pywebview.api.get_last_session();
+        const sessionRes = JSON.parse(sessionRaw);
+
+        if (sessionRes && sessionRes.has_session && sessionRes.session && sessionRes.session.forecast_data) {
+          const sess = sessionRes.session;
+          if (sess.timeframe) document.getElementById('timeframeSelect').value = sess.timeframe;
+          if (sess.model_type) document.getElementById('modelSelect').value = sess.model_type;
+          updateHorizonLabels(sess.horizon_label);
+          if (sess.sample_count) document.getElementById('sampleCountSelect').value = sess.sample_count;
+
+          handleForecastResult({
+            success: true,
+            data: sess.forecast_data,
+            is_restored: true
+          });
+          return;
+        }
+      } catch (e) {
+        console.warn("Session restore check warning:", e);
+      }
+
+      // If no persisted session, run initial forecast
+      runForecast();
+    }
+
+    window.addEventListener('pywebviewready', initSystem);
+    setTimeout(initSystem, 600);
+  </script>
+</body>
+</html>
