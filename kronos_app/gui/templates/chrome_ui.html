@@ -1437,10 +1437,28 @@
         }
       }
 
-      // 4. Update candle shape if timeframe matches active chart
+      // 4. Update candle shape & commit closed candle if timeframe matches active chart
       const currentTf = (document.getElementById('timeframeSelect')?.value || 'M5').toUpperCase();
       if (!res.timeframe || res.timeframe.toUpperCase() === currentTf) {
         if (res.candle) {
+          // If the bar period has rolled forward (e.g. from 15:05 to 15:10), commit previous bar to history!
+          if (currentLiveCandle && currentLiveCandle.timestamp && res.candle.timestamp !== currentLiveCandle.timestamp) {
+            if (currentForecastData && currentForecastData.history) {
+              const hist = currentForecastData.history;
+              const lastBar = hist.length > 0 ? hist[hist.length - 1] : null;
+              if (!lastBar || lastBar.timestamp !== currentLiveCandle.timestamp) {
+                hist.push({
+                  timestamp: currentLiveCandle.timestamp,
+                  open: currentLiveCandle.open,
+                  high: currentLiveCandle.high,
+                  low: currentLiveCandle.low,
+                  close: currentLiveCandle.close,
+                  volume: currentLiveCandle.volume
+                });
+                if (hist.length > 300) hist.shift();
+              }
+            }
+          }
           currentLiveCandle = res.candle;
         }
       }
@@ -1450,6 +1468,33 @@
         renderChart();
       }
     };
+
+    // Helper to immediately sync historical closed bars from Dukascopy
+    async function syncLatestCandles(tf) {
+      try {
+        if (window.pywebview && window.pywebview.api && window.pywebview.api.refresh_candles) {
+          const raw = await window.pywebview.api.refresh_candles(tf);
+          const res = typeof raw === 'string' ? JSON.parse(raw) : raw;
+          if (res && res.success && res.candles && res.candles.length > 0) {
+            if (!currentForecastData) {
+              currentForecastData = {
+                history: res.candles,
+                ghost_candles: [],
+                fan_chart: {},
+                last_price: res.last_price || (currentTicker ? currentTicker.bid : 0),
+                timeframe: tf
+              };
+            } else {
+              currentForecastData.history = res.candles;
+              if (res.last_price) currentForecastData.last_price = res.last_price;
+            }
+            renderChart();
+          }
+        }
+      } catch (e) {
+        console.debug("syncLatestCandles notice:", e);
+      }
+    }
 
     // --- Enhanced Mouse Controls & 2D Navigation State ---
     let zoomLevel = 1.0;            // Horizontal zoom factor
@@ -2707,6 +2752,7 @@
           await window.pywebview.api.set_timeframe(newTf);
         }
       } catch(e) {}
+      await syncLatestCandles(newTf);
       pollLiveUpdate();
       runForecast();
     });
@@ -2811,31 +2857,26 @@
         console.warn("Live stream auto-start notice:", e);
       }
 
-      // 4. Continue where you left off: restore persisted session or run fresh
+      // 4. Continue where you left off: restore persisted session preferences
       try {
         const sessionRaw = await window.pywebview.api.get_last_session();
         const sessionRes = JSON.parse(sessionRaw);
 
-        if (sessionRes && sessionRes.has_session && sessionRes.session && sessionRes.session.forecast_data) {
+        if (sessionRes && sessionRes.has_session && sessionRes.session) {
           const sess = sessionRes.session;
           if (sess.timeframe) document.getElementById('timeframeSelect').value = sess.timeframe;
           if (sess.model_type && document.getElementById('modelSelect')) document.getElementById('modelSelect').value = sess.model_type;
           updateHorizonLabels(sess.horizon_label);
           if (sess.sample_count) safelySetSelectValue('sampleCountSelect', sess.sample_count, '100');
           if (sess.seed && document.getElementById('seedInput')) document.getElementById('seedInput').value = sess.seed;
-
-          handleForecastResult({
-            success: true,
-            data: sess.forecast_data,
-            is_restored: true
-          });
-          return;
         }
       } catch (e) {
         console.warn("Session restore check warning:", e);
       }
 
-      // If no persisted session, run initial forecast
+      // 5. Immediately sync latest gapless closed candles from Dukascopy & run fresh forecast
+      const activeTf = (document.getElementById('timeframeSelect')?.value || 'M5').toUpperCase();
+      await syncLatestCandles(activeTf);
       runForecast();
     }
 

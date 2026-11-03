@@ -144,6 +144,27 @@ class TestDataIntegrity(unittest.TestCase):
         self.assertEqual(res1["candle"]["timestamp"], res2["candle"]["timestamp"])
         self.assertEqual(res1["ticker"]["bid"], res2["ticker"]["bid"])
 
+    def test_tick_bridging_gapless_candles(self):
+        """Validates that _bridge_recent_ticks recovers recent closed bars without error."""
+        feed = DukascopyFeed()
+        now_utc = datetime.datetime.now(datetime.timezone.utc)
+        # Create a sample historical df ending 15 minutes ago
+        past_ts = now_utc - datetime.timedelta(minutes=15)
+        sample_df = pd.DataFrame({
+            "timestamp": [past_ts - datetime.timedelta(minutes=5), past_ts],
+            "open": [3900.0, 3902.0],
+            "high": [3905.0, 3906.0],
+            "low": [3898.0, 3900.0],
+            "close": [3902.0, 3904.0],
+            "volume": [10.0, 12.0],
+            "amount": [39020.0, 46848.0]
+        })
+        bridged = feed._bridge_recent_ticks(sample_df, "M5")
+        self.assertIsInstance(bridged, pd.DataFrame)
+        self.assertGreaterEqual(len(bridged), len(sample_df))
+        self.assertIn("timestamp", bridged.columns)
+        self.assertIn("close", bridged.columns)
+
 
 if __name__ == "__main__":
     unittest.main()

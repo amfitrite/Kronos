@@ -364,6 +364,85 @@ class DukascopyFeed:
         }
         return df_clean[["timestamp", "open", "high", "low", "close", "volume", "amount"]], metadata
 
+    def _bridge_recent_ticks(self, clean_df: pd.DataFrame, timeframe: str) -> pd.DataFrame:
+        """Bridges any gap between the last archived historical candle and the current forming bar using real-time ticks."""
+        if clean_df.empty or "timestamp" not in clean_df.columns:
+            return clean_df
+
+        tf_upper = timeframe.upper()
+        rule_map = {
+            "M1": ("1min", 1), "1M": ("1min", 1),
+            "M5": ("5min", 5), "5M": ("5min", 5),
+            "M15": ("15min", 15), "15M": ("15min", 15),
+            "H1": ("1h", 60), "1H": ("1h", 60)
+        }
+        if tf_upper not in rule_map:
+            return clean_df
+
+        rule, period_mins = rule_map[tf_upper]
+        now_utc = datetime.datetime.now(datetime.timezone.utc)
+        last_bar_ts = pd.to_datetime(clean_df["timestamp"].iloc[-1])
+        if last_bar_ts.tzinfo is None:
+            last_bar_ts = last_bar_ts.replace(tzinfo=datetime.timezone.utc)
+        else:
+            last_bar_ts = last_bar_ts.astimezone(datetime.timezone.utc)
+
+        # If last bar is already inside the current bar period, no bridging needed
+        if (now_utc - last_bar_ts).total_seconds() < period_mins * 60:
+            return clean_df
+
+        try:
+            import dukascopy_python as duka
+
+            start_query = last_bar_ts
+            ticks = list(duka.fetch_ticks(self.symbol, start=start_query, end=now_utc))
+            if not ticks:
+                return clean_df
+
+            records = [
+                {
+                    "timestamp": t.timestamp.replace(tzinfo=datetime.timezone.utc),
+                    "price": float(t.bid),
+                    "volume": float(t.volume)
+                }
+                for t in ticks
+            ]
+            df_t = pd.DataFrame(records).set_index("timestamp")
+            bridged_ohlc = df_t["price"].resample(rule).ohlc()
+            bridged_ohlc["volume"] = df_t["volume"].resample(rule).sum()
+            bridged_ohlc = bridged_ohlc.dropna().reset_index()
+
+            # Current forming bar boundary (must NOT be included in finalized closed bars)
+            if period_mins == 1:
+                cur_forming_start = now_utc.replace(second=0, microsecond=0)
+            elif period_mins < 60:
+                cur_forming_start = now_utc.replace(
+                    minute=(now_utc.minute // period_mins) * period_mins,
+                    second=0,
+                    microsecond=0
+                )
+            else:
+                cur_forming_start = now_utc.replace(minute=0, second=0, microsecond=0)
+
+            # Filter for completed bars that are strictly newer than last_bar_ts and strictly older than cur_forming_start
+            new_closed = bridged_ohlc[
+                (bridged_ohlc["timestamp"] > last_bar_ts) &
+                (bridged_ohlc["timestamp"] < cur_forming_start)
+            ]
+
+            if not new_closed.empty:
+                new_closed["amount"] = new_closed["volume"] * new_closed[["open", "high", "low", "close"]].mean(axis=1)
+                new_clean, _ = self.validate_ohlc(new_closed, tf_upper)
+                combined = pd.concat([clean_df, new_clean], ignore_index=True)
+                combined = combined.drop_duplicates(subset=["timestamp"]).sort_values("timestamp").reset_index(drop=True)
+                logger.info(f"Tick bridging appended {len(new_clean)} completed {tf_upper} bars up to {combined['timestamp'].iloc[-1]}.")
+                return combined
+
+        except Exception as e:
+            logger.debug(f"Tick bridge notice: {e}")
+
+        return clean_df
+
     def fetch_historical_data(
         self,
         timeframe: str = "H1",
@@ -396,6 +475,7 @@ class DukascopyFeed:
                 cached_df, _ = self.validate_ohlc(raw_cached, tf_upper)
                 cache_is_fresh, cache_status_msg = self.check_cache_freshness(cached_df, tf_upper)
                 if not force_refresh and cache_is_fresh and len(cached_df) >= 200:
+                    cached_df = self._bridge_recent_ticks(cached_df, tf_upper)
                     logger.info(f"Using fresh cache for {timeframe} ({len(cached_df)} bars, {cache_status_msg})")
                     return {
                         "df": cached_df,
@@ -447,6 +527,9 @@ class DukascopyFeed:
 
             raw_df = duka.to_dataframe(candles)
             clean_df, meta = self.validate_ohlc(raw_df, tf_upper)
+
+            # Bridge any gap up to the active forming bar using real-time ticks
+            clean_df = self._bridge_recent_ticks(clean_df, tf_upper)
 
             # Persist valid data to cache
             clean_df.to_parquet(cache_path, index=False)

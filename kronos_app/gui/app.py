@@ -182,6 +182,36 @@ class ChromeWindowAPI:
             return json.dumps({"success": False, "error": str(e)})
 
     # --- Real-Time Dukascopy Live Feed & Ticker ---
+    def refresh_candles(self, timeframe: Optional[str] = None) -> str:
+        """Fetches the latest fresh closed candles from Dukascopy with tick bridging."""
+        try:
+            tf = (timeframe or self._service.current_timeframe).upper()
+            self._service.load_data(timeframe=tf, force_refresh=False)
+            df = self._service._cached_df
+            if df is not None and not df.empty:
+                recent = df.tail(150).copy()
+                candles = [
+                    {
+                        "timestamp": str(row["timestamp"])[:16],
+                        "open": round(float(row["open"]), 3),
+                        "high": round(float(row["high"]), 3),
+                        "low": round(float(row["low"]), 3),
+                        "close": round(float(row["close"]), 3),
+                        "volume": round(float(row["volume"]), 3),
+                    }
+                    for _, row in recent.iterrows()
+                ]
+                return json.dumps({
+                    "success": True,
+                    "timeframe": tf,
+                    "candles": candles,
+                    "last_price": round(float(df["close"].iloc[-1]), 3)
+                })
+            return json.dumps({"success": False, "error": "No candle data available"})
+        except Exception as e:
+            logger.error(f"refresh_candles failed: {e}")
+            return json.dumps({"success": False, "error": str(e)})
+
     def set_timeframe(self, timeframe: str) -> str:
         """Updates the active timeframe in the service for the live ticker and data feed."""
         try:
