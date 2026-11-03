@@ -4,6 +4,7 @@ import json
 import logging
 from pathlib import Path
 import sys
+import threading
 import time
 from typing import Optional
 import webview
