@@ -181,6 +181,45 @@ class ChromeWindowAPI:
             logger.error(f"get_token_diagnostics failed: {e}")
             return json.dumps({"success": False, "error": str(e)})
 
+    # --- Real-Time Dukascopy Live Feed & Ticker ---
+    def set_timeframe(self, timeframe: str) -> str:
+        """Updates the active timeframe in the service for the live ticker and data feed."""
+        try:
+            self._service.set_timeframe(timeframe)
+            return json.dumps({"success": True, "timeframe": self._service.current_timeframe})
+        except Exception as e:
+            logger.error(f"set_timeframe failed: {e}")
+            return json.dumps({"success": False, "error": str(e)})
+
+    def get_live_candle(self, timeframe: Optional[str] = None) -> str:
+        """Fetches the latest real-time tick and forming live bar from Dukascopy."""
+        try:
+            res = self._service.get_live_candle(timeframe)
+            return json.dumps(res)
+        except Exception as e:
+            logger.error(f"get_live_candle failed: {e}")
+            return json.dumps({"success": False, "error": str(e)})
+
+    def toggle_live_feed(self, enabled: bool) -> str:
+        """Toggles background real-time streaming of Dukascopy live candle updates."""
+        try:
+            if enabled:
+                def _on_live_update(data):
+                    if self._window:
+                        try:
+                            payload = json.dumps(data)
+                            self._window.evaluate_js(f"window.onLiveCandleUpdate({payload});")
+                        except Exception as err:
+                            logger.debug(f"Live dispatch notice: {err}")
+
+                self._service.start_live_stream(callback=_on_live_update, poll_interval=2.5)
+            else:
+                self._service.stop_live_stream()
+            return json.dumps({"success": True, "live_active": enabled})
+        except Exception as e:
+            logger.error(f"toggle_live_feed failed: {e}")
+            return json.dumps({"success": False, "error": str(e)})
+
 
 def _apply_taskbar_icon():
     """Applies custom icon to Win32 window handle for crisp taskbar thumbnail."""

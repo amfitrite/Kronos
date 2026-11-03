@@ -38,6 +38,11 @@ class KronosService:
         self._last_error: Optional[str] = None
         self._worker_thread: Optional[threading.Thread] = None
 
+        # Live Dukascopy streaming ticker state
+        self._live_stream_active = False
+        self._live_stream_thread: Optional[threading.Thread] = None
+        self._live_callback: Optional[Callable[[Dict[str, Any]], None]] = None
+
     @classmethod
     def get_horizon_details(cls, timeframe: str, horizon_input: Any) -> Tuple[int, str]:
         """Translates timeframe and requested horizon into exact bar counts and accurate duration string.
@@ -213,6 +218,44 @@ class KronosService:
                 "error": str(e),
                 "timeframe": self.current_timeframe
             }
+
+    def set_timeframe(self, timeframe: str):
+        """Sets the active timeframe for service and feeds."""
+        self.current_timeframe = timeframe.upper()
+
+    def get_live_candle(self, timeframe: Optional[str] = None) -> Dict[str, Any]:
+        """Fetches the latest real-time tick and forming live candle from Dukascopy."""
+        if timeframe:
+            self.set_timeframe(timeframe)
+        return self.feed.fetch_live_candle(self.current_timeframe)
+
+    def start_live_stream(self, callback: Callable[[Dict[str, Any]], None], poll_interval: float = 3.0):
+        """Starts a background daemon thread that regularly pushes live candle & ticker updates."""
+        self._live_callback = callback
+        if self._live_stream_active:
+            return
+
+        self._live_stream_active = True
+
+        def _stream_loop():
+            logger.info("Dukascopy real-time live streaming thread started.")
+            import time
+            while self._live_stream_active:
+                try:
+                    res = self.feed.fetch_live_candle(self.current_timeframe)
+                    if self._live_callback and self._live_stream_active:
+                        self._live_callback(res)
+                except Exception as e:
+                    logger.debug(f"Live stream poll tick notice: {e}")
+                time.sleep(poll_interval)
+            logger.info("Dukascopy real-time live streaming thread stopped.")
+
+        self._live_stream_thread = threading.Thread(target=_stream_loop, daemon=True)
+        self._live_stream_thread.start()
+
+    def stop_live_stream(self):
+        """Stops the real-time live streaming thread."""
+        self._live_stream_active = False
 
     def start_forecast_async(
         self,

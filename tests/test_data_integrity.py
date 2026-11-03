@@ -101,6 +101,49 @@ class TestDataIntegrity(unittest.TestCase):
         result = feed.is_cache_fresh("H1")
         self.assertIsInstance(result, bool)
 
+    def test_fetch_live_candle_structure_and_boundaries(self):
+        """Validates real-time Dukascopy ECN live candle structure and OHLC validity."""
+        feed = DukascopyFeed()
+        res = feed.fetch_live_candle("M5")
+        self.assertTrue(res["success"])
+        self.assertEqual(res["symbol"], "XAUUSD")
+        self.assertEqual(res["timeframe"], "M5")
+
+        candle = res["candle"]
+        self.assertIn("timestamp", candle)
+        self.assertIn("open", candle)
+        self.assertIn("high", candle)
+        self.assertIn("low", candle)
+        self.assertIn("close", candle)
+        self.assertTrue(candle["is_live"])
+
+        # OHLC Sanity
+        self.assertGreaterEqual(candle["high"], candle["low"])
+        self.assertGreaterEqual(candle["high"], min(candle["open"], candle["close"]))
+        self.assertLessEqual(candle["low"], max(candle["open"], candle["close"]))
+
+        # Ticker Sanity
+        ticker = res["ticker"]
+        self.assertIn("bid", ticker)
+        self.assertIn("ask", ticker)
+        self.assertIn("spread", ticker)
+        self.assertGreaterEqual(ticker["ask"], ticker["bid"])
+
+        # Bar Progress Sanity
+        progress = res["bar_progress"]
+        self.assertEqual(progress["total_seconds"], 300)
+        self.assertGreaterEqual(progress["progress_pct"], 0.0)
+        self.assertLessEqual(progress["progress_pct"], 100.0)
+
+    def test_fetch_live_candle_rate_limiting_cache(self):
+        """Validates in-memory rate limiting within 1.0 second."""
+        feed = DukascopyFeed()
+        res1 = feed.fetch_live_candle("M1")
+        res2 = feed.fetch_live_candle("M1")
+        # Second call immediately should return identical cached result
+        self.assertEqual(res1["candle"]["timestamp"], res2["candle"]["timestamp"])
+        self.assertEqual(res1["ticker"]["bid"], res2["ticker"]["bid"])
+
 
 if __name__ == "__main__":
     unittest.main()
