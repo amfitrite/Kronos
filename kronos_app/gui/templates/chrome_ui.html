@@ -252,6 +252,53 @@
       100% { opacity: 1; transform: scale(1); }
     }
 
+    .auto-forecast-wrapper {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #1c1e24;
+      border: 1px solid #374151;
+      padding: 3px 8px;
+      border-radius: 6px;
+      height: 30px;
+      box-sizing: border-box;
+      transition: border-color 0.15s;
+    }
+
+    .auto-forecast-wrapper:hover {
+      border-color: #4b5563;
+    }
+
+    .auto-select {
+      background: transparent;
+      border: none;
+      padding: 0;
+      font-size: 11px;
+      color: #38bdf8;
+      font-weight: 700;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .auto-select option {
+      background: #1e222a;
+      color: #e5e7eb;
+    }
+
+    .auto-countdown {
+      font-size: 10px;
+      font-family: 'JetBrains Mono', 'Segoe UI Mono', monospace;
+      font-weight: 700;
+      color: #94a3b8;
+      background: #121316;
+      border: 1px solid #2e3440;
+      padding: 1px 5px;
+      border-radius: 4px;
+      min-width: 24px;
+      text-align: center;
+      line-height: 14px;
+    }
+
     .gear-btn {
       width: 32px;
       height: 30px;
@@ -864,6 +911,17 @@
           <span id="btnRunText">⚡ Run Forecast</span>
         </button>
 
+        <!-- Auto-Run Forecast Interval Selector & Countdown -->
+        <div class="auto-forecast-wrapper" title="Otomatis jalankan ulang forecast secara berkala (Default: tiap 1 Menit)">
+          <select class="auto-select" id="autoForecastSelect" aria-label="Auto Forecast Interval">
+            <option value="1" selected>⏱️ Auto: 1 Min</option>
+            <option value="5">⏱️ Auto: 5 Min</option>
+            <option value="15">⏱️ Auto: 15 Min</option>
+            <option value="off">⏱️ Auto: Off</option>
+          </select>
+          <span class="auto-countdown" id="lblAutoCountdown" title="Countdown ke run forecast berikutnya">60s</span>
+        </div>
+
         <!-- Dukascopy Real-Time Live Feed Toggle -->
         <button class="live-pill active" id="btnLiveToggle" title="Auto-streaming live ticks dari Dukascopy Swiss ECN (Klik untuk Pause/Resume)">
           <div class="live-dot"></div>
@@ -1328,6 +1386,84 @@
     btnHybrid.addEventListener('click', () => setViewMode('hybrid'));
     btnFan.addEventListener('click', () => setViewMode('fan'));
     btnGhost.addEventListener('click', () => setViewMode('ghost'));
+
+    // --- Auto Run Forecast Engine (1m, 5m, 15m, off - Default: 1m) ---
+    let autoForecastIntervalMin = 1; // default 1 minute
+    let autoCountdownRemainingSec = 60;
+    let autoForecastTimer = null;
+
+    const autoForecastSelect = document.getElementById('autoForecastSelect');
+    const lblAutoCountdown = document.getElementById('lblAutoCountdown');
+
+    function resetAutoForecastCountdown() {
+      if (autoForecastIntervalMin === 'off' || autoForecastIntervalMin <= 0) {
+        if (lblAutoCountdown) {
+          lblAutoCountdown.textContent = 'OFF';
+          lblAutoCountdown.style.color = '#6b7280';
+        }
+        return;
+      }
+      autoCountdownRemainingSec = autoForecastIntervalMin * 60;
+      updateAutoCountdownDisplay();
+    }
+
+    function updateAutoCountdownDisplay() {
+      if (!lblAutoCountdown) return;
+      if (autoForecastIntervalMin === 'off') {
+        lblAutoCountdown.textContent = 'OFF';
+        lblAutoCountdown.style.color = '#6b7280';
+        return;
+      }
+      lblAutoCountdown.style.color = autoCountdownRemainingSec <= 5 ? '#38bdf8' : '#94a3b8';
+      if (autoCountdownRemainingSec >= 60) {
+        const m = Math.floor(autoCountdownRemainingSec / 60);
+        const s = autoCountdownRemainingSec % 60;
+        lblAutoCountdown.textContent = `${m}m${s > 0 ? (s < 10 ? '0' + s : s) + 's' : ''}`;
+      } else {
+        lblAutoCountdown.textContent = `${autoCountdownRemainingSec}s`;
+      }
+    }
+
+    function startAutoForecastTimer() {
+      if (autoForecastTimer) clearInterval(autoForecastTimer);
+      resetAutoForecastCountdown();
+
+      autoForecastTimer = setInterval(() => {
+        if (autoForecastIntervalMin === 'off') return;
+        if (isRunning) return; // Wait if already computing
+
+        autoCountdownRemainingSec--;
+        updateAutoCountdownDisplay();
+
+        if (autoCountdownRemainingSec <= 0) {
+          resetAutoForecastCountdown();
+          runForecast();
+        }
+      }, 1000);
+    }
+
+    function setAutoForecastInterval(val) {
+      if (val === 'off') {
+        autoForecastIntervalMin = 'off';
+      } else {
+        const num = parseInt(val, 10);
+        autoForecastIntervalMin = (!num || isNaN(num) || num <= 0) ? 1 : num;
+      }
+      try {
+        localStorage.setItem('kronos_auto_forecast_interval', String(autoForecastIntervalMin));
+      } catch (e) {}
+
+      if (autoForecastSelect) {
+        autoForecastSelect.value = String(autoForecastIntervalMin);
+      }
+      resetAutoForecastCountdown();
+    }
+
+    if (autoForecastSelect) {
+      autoForecastSelect.addEventListener('change', (e) => {
+        setAutoForecastInterval(e.target.value);
+      });
+    }
 
     // --- Dukascopy Real-Time Live Feed Toggle & Polling Dispatch ---
     const btnLiveToggle = document.getElementById('btnLiveToggle');
@@ -2539,6 +2675,7 @@
       if (pollTimer) clearInterval(pollTimer);
       pollTimer = null;
       isRunning = false;
+      resetAutoForecastCountdown();
 
       const btn = document.getElementById('btnRunForecast');
       btn.classList.remove('busy');
@@ -2830,6 +2967,19 @@
 
       // Start active real-time live polling immediately
       startLivePolling();
+
+      // 1c. Initialize Auto Run Forecast (Default: 1 Min)
+      try {
+        const savedAuto = localStorage.getItem('kronos_auto_forecast_interval');
+        if (savedAuto) {
+          setAutoForecastInterval(savedAuto);
+        } else {
+          setAutoForecastInterval('1');
+        }
+      } catch (e) {
+        setAutoForecastInterval('1');
+      }
+      startAutoForecastTimer();
 
       // 2. Fetch live status from backend
       try {
