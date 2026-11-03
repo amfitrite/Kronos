@@ -413,6 +413,24 @@
 
     .tool-btn:hover { background: #374151; color: #38bdf8; border-color: #38bdf8; }
     .tool-btn.reset { width: auto; padding: 0 8px; font-size: 11px; font-weight: 600; color: #9ca3af; }
+    .tool-btn.pill-action { width: auto; padding: 0 7px; font-size: 11px; font-weight: 600; color: #cbd5e1; gap: 3px; }
+    .tool-btn.pill-action:hover { color: #38bdf8; }
+
+    .chart-nav-hint {
+      position: absolute;
+      bottom: 6px;
+      left: 18px;
+      font-size: 10px;
+      color: #94a3b8;
+      background: rgba(18, 19, 22, 0.88);
+      backdrop-filter: blur(4px);
+      padding: 3px 9px;
+      border-radius: 4px;
+      border: 1px solid #1f232b;
+      pointer-events: none;
+      user-select: none;
+      z-index: 5;
+    }
 
     /* Bottom Multi-Horizon Deck */
     .horizon-deck-wrapper {
@@ -849,17 +867,23 @@
         <div class="chart-floating-toolbar">
           <div class="mode-btn-group">
             <button class="mode-btn active" id="modeHybrid">🔀 Hybrid</button>
-            <button class="mode-btn" id="modeFan">📊 Fan Chart</button>
-            <button class="mode-btn" id="modeGhost">🕯️ Ghost Candles</button>
+            <button class="mode-btn" id="modeFan">📊 Fan</button>
+            <button class="mode-btn" id="modeGhost">🕯️ Ghost</button>
           </div>
           <div class="tool-sep"></div>
-          <button class="tool-btn" id="btnZoomIn" title="Zoom In (+)" aria-label="Zoom In (+)">+</button>
-          <button class="tool-btn" id="btnZoomOut" title="Zoom Out (-)" aria-label="Zoom Out (-)">-</button>
-          <button class="tool-btn reset" id="btnResetView" title="Reset View (0 / Double Click Canvas)" aria-label="Reset View (0)">↺ Reset</button>
+          <button class="tool-btn" id="btnPanLeft" title="Pan Kiri (Arrow Left)" aria-label="Pan Left">◀</button>
+          <button class="tool-btn" id="btnPanRight" title="Pan Kanan (Arrow Right)" aria-label="Pan Right">▶</button>
+          <button class="tool-btn pill-action" id="btnJumpLatest" title="Lompat ke T₀ Sekarang (End)" aria-label="Jump to Latest">⏩ T₀</button>
+          <div class="tool-sep"></div>
+          <button class="tool-btn" id="btnZoomIn" title="Zoom In (+ / Wheel Up)" aria-label="Zoom In (+)">+</button>
+          <button class="tool-btn" id="btnZoomOut" title="Zoom Out (- / Wheel Down)" aria-label="Zoom Out (-)">-</button>
+          <button class="tool-btn pill-action" id="btnFitPrice" title="Auto-Fit Skala Harga (Double click sumbu harga)" aria-label="Fit Price">↕ Fit</button>
+          <button class="tool-btn reset" id="btnResetView" title="Reset Semua View (0 / Double Click Canvas)" aria-label="Reset View">↺ Reset</button>
         </div>
 
-        <canvas id="kronosCanvas" title="Drag untuk menggeser chart • Scroll atau tekan +/- untuk zoom • Klik 2x atau tekan 0 untuk reset"></canvas>
+        <canvas id="kronosCanvas" title="Drag: Geser 2D • Scroll: Zoom Kursor • Drag Sumbu Kanan: Skala Harga • Drag Sumbu Bawah: Skala Waktu • Klik 2x: Auto-Fit"></canvas>
         <div id="chartTooltip"></div>
+        <div class="chart-nav-hint">🖱️ <strong>Navigasi:</strong> Drag Chart (Pan 2D) • Scroll (Zoom pada Kursor) • Drag Sumbu Kanan (Skala Harga) • Klik 2x (Auto-Fit)</div>
       </div>
 
       <!-- Multi-Horizon Deck Cards -->
@@ -1122,12 +1146,6 @@
     const ctx = canvas.getContext('2d');
     const tooltip = document.getElementById('chartTooltip');
 
-    let zoomLevel = 1.0;
-    let panOffset = 0;
-    let isDragging = false;
-    let dragStartX = 0;
-    let hoverIndex = -1;
-
     // --- Global Settings Modal Handlers ---
     const settingsModal = document.getElementById('settingsModal');
     const btnOpenSettings = document.getElementById('btnOpenSettings');
@@ -1244,36 +1262,228 @@
     btnFan.addEventListener('click', () => setViewMode('fan'));
     btnGhost.addEventListener('click', () => setViewMode('ghost'));
 
-    // Zoom & Pan
+    // --- Enhanced Mouse Controls & 2D Navigation State ---
+    let zoomLevel = 1.0;            // Horizontal zoom factor
+    let panOffset = 0;              // Horizontal pan in pixels
+    let priceZoomLevel = 1.0;       // Vertical price scale zoom
+    let panOffsetY = 0;             // Vertical pan in pixels
+    let isDragging = false;
+    let dragMode = 'none';          // 'chart' | 'priceScale' | 'timeScale'
+    let dragStartX = 0;
+    let dragStartY = 0;
+    let dragStartPanX = 0;
+    let dragStartPanY = 0;
+    let dragStartPriceZoom = 1.0;
+    let dragStartZoomLevel = 1.0;
+    let mousePos = { x: -1, y: -1 };
+    let hoverIndex = -1;
+
+    const PRICE_AXIS_WIDTH = 72;
+    const TIME_AXIS_HEIGHT = 28;
+    const PLOT_TOP = 18;
+
     function resetView() {
       zoomLevel = 1.0;
       panOffset = 0;
+      priceZoomLevel = 1.0;
+      panOffsetY = 0;
       renderChart();
     }
 
-    document.getElementById('btnZoomIn').addEventListener('click', () => { zoomLevel = Math.min(3.0, zoomLevel * 1.25); renderChart(); });
-    document.getElementById('btnZoomOut').addEventListener('click', () => { zoomLevel = Math.max(0.4, zoomLevel / 1.25); renderChart(); });
-    document.getElementById('btnResetView').addEventListener('click', resetView);
-    canvas.addEventListener('dblclick', resetView);
+    function fitPriceScale() {
+      priceZoomLevel = 1.0;
+      panOffsetY = 0;
+      renderChart();
+    }
 
+    function jumpToLatest() {
+      if (!currentForecastData || !currentForecastData.history) return;
+      const rect = canvas.getBoundingClientRect();
+      const plotW = Math.max(100, rect.width - PRICE_AXIS_WIDTH);
+      const hist = currentForecastData.history;
+      const ghosts = currentForecastData.ghost_candles || [];
+      const totalBars = hist.length + ghosts.length;
+      const defaultBarWidth = Math.max(4, Math.min(22, (plotW * 0.88) / totalBars));
+      const barWidth = defaultBarWidth * zoomLevel;
+      const slotWidth = barWidth * 1.35;
+      
+      const nHist = hist.length;
+      // Position T0 around 62% of the plot width
+      panOffset = Math.round(plotW * 0.62 - 25 - nHist * slotWidth);
+      panOffsetY = 0;
+      priceZoomLevel = 1.0;
+      renderChart();
+    }
+
+    function panBy(dx, dy = 0) {
+      panOffset += dx;
+      panOffsetY += dy;
+      renderChart();
+    }
+
+    function zoomAtCenter(factor) {
+      const rect = canvas.getBoundingClientRect();
+      const plotW = Math.max(100, rect.width - PRICE_AXIS_WIDTH);
+      const centerX = plotW / 2;
+
+      const newZoom = Math.max(0.25, Math.min(8.0, zoomLevel * factor));
+      if (newZoom !== zoomLevel) {
+        const focalOffset = centerX - (25 + panOffset);
+        const scaleRatio = newZoom / zoomLevel;
+        panOffset = centerX - 25 - focalOffset * scaleRatio;
+        zoomLevel = newZoom;
+        renderChart();
+      }
+    }
+
+    // Toolbar Buttons
+    document.getElementById('btnZoomIn').addEventListener('click', () => zoomAtCenter(1.25));
+    document.getElementById('btnZoomOut').addEventListener('click', () => zoomAtCenter(0.8));
+    document.getElementById('btnPanLeft')?.addEventListener('click', () => panBy(60, 0));
+    document.getElementById('btnPanRight')?.addEventListener('click', () => panBy(-60, 0));
+    document.getElementById('btnJumpLatest')?.addEventListener('click', jumpToLatest);
+    document.getElementById('btnFitPrice')?.addEventListener('click', fitPriceScale);
+    document.getElementById('btnResetView').addEventListener('click', resetView);
+
+    // Double-click to reset or auto-fit
+    canvas.addEventListener('dblclick', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      if (mouseX >= rect.width - PRICE_AXIS_WIDTH) {
+        // Double-click on right price axis: reset price scale only
+        fitPriceScale();
+      } else if (e.clientY - rect.top >= rect.height - TIME_AXIS_HEIGHT) {
+        // Double-click on bottom time axis: reset horizontal zoom only
+        zoomLevel = 1.0;
+        panOffset = 0;
+        renderChart();
+      } else {
+        // Double-click on chart: full reset
+        resetView();
+      }
+    });
+
+    // Keyboard Navigation
     window.addEventListener('keydown', (e) => {
       if (['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
-      if (e.key === '+' || e.key === '=') { zoomLevel = Math.min(3.0, zoomLevel * 1.25); renderChart(); }
-      else if (e.key === '-' || e.key === '_') { zoomLevel = Math.max(0.4, zoomLevel / 1.25); renderChart(); }
-      else if (e.key === '0') { resetView(); }
+      if (e.key === '+' || e.key === '=') { e.preventDefault(); zoomAtCenter(1.25); }
+      else if (e.key === '-' || e.key === '_') { e.preventDefault(); zoomAtCenter(0.8); }
+      else if (e.key === '0') { e.preventDefault(); resetView(); }
+      else if (e.key === 'ArrowLeft') { e.preventDefault(); panBy(50, 0); }
+      else if (e.key === 'ArrowRight') { e.preventDefault(); panBy(-50, 0); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); panBy(0, 30); }
+      else if (e.key === 'ArrowDown') { e.preventDefault(); panBy(0, -30); }
+      else if (e.key === 'Home') { e.preventDefault(); panOffset = 25; renderChart(); }
+      else if (e.key === 'End') { e.preventDefault(); jumpToLatest(); }
     });
 
-    canvas.addEventListener('mousedown', (e) => { isDragging = true; dragStartX = e.clientX - panOffset; canvas.classList.add('panning'); });
-    window.addEventListener('mouseup', () => { isDragging = false; canvas.classList.remove('panning'); });
-    window.addEventListener('mousemove', (e) => {
-      if (isDragging) { panOffset = e.clientX - dragStartX; renderChart(); }
-      handleCanvasHover(e);
+    // Mouse Dragging (2D Pan & Axis Scaling)
+    canvas.addEventListener('mousedown', (e) => {
+      if (e.button !== 0) return; // Left-click only
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+
+      isDragging = true;
+      dragStartX = e.clientX;
+      dragStartY = e.clientY;
+      dragStartPanX = panOffset;
+      dragStartPanY = panOffsetY;
+      dragStartPriceZoom = priceZoomLevel;
+      dragStartZoomLevel = zoomLevel;
+
+      if (mouseX >= rect.width - PRICE_AXIS_WIDTH) {
+        dragMode = 'priceScale';
+        canvas.style.cursor = 'ns-resize';
+      } else if (mouseY >= rect.height - TIME_AXIS_HEIGHT) {
+        dragMode = 'timeScale';
+        canvas.style.cursor = 'ew-resize';
+      } else {
+        dragMode = 'chart';
+        canvas.classList.add('panning');
+        canvas.style.cursor = 'grabbing';
+      }
     });
+
+    window.addEventListener('mouseup', () => {
+      if (isDragging) {
+        isDragging = false;
+        dragMode = 'none';
+        canvas.classList.remove('panning');
+        canvas.style.cursor = 'crosshair';
+      }
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+      const isOverCanvas = mouseX >= 0 && mouseX <= rect.width && mouseY >= 0 && mouseY <= rect.height;
+
+      if (isDragging) {
+        if (dragMode === 'chart') {
+          panOffset = dragStartPanX + (e.clientX - dragStartX);
+          panOffsetY = dragStartPanY + (e.clientY - dragStartY);
+          renderChart();
+        } else if (dragMode === 'priceScale') {
+          // Dragging up stretches price scale, dragging down compresses
+          const dy = dragStartY - e.clientY;
+          priceZoomLevel = Math.max(0.2, Math.min(25.0, dragStartPriceZoom * Math.pow(1.008, dy)));
+          renderChart();
+        } else if (dragMode === 'timeScale') {
+          // Dragging horizontally zooms time scale
+          const dx = e.clientX - dragStartX;
+          const newZoom = Math.max(0.25, Math.min(8.0, dragStartZoomLevel * Math.pow(1.008, dx)));
+          if (newZoom !== zoomLevel) {
+            zoomLevel = newZoom;
+            renderChart();
+          }
+        }
+      } else if (isOverCanvas) {
+        if (mouseX >= rect.width - PRICE_AXIS_WIDTH) {
+          canvas.style.cursor = 'ns-resize';
+        } else if (mouseY >= rect.height - TIME_AXIS_HEIGHT) {
+          canvas.style.cursor = 'ew-resize';
+        } else {
+          canvas.style.cursor = 'crosshair';
+        }
+      }
+
+      if (isOverCanvas) {
+        handleCanvasHover(e);
+      }
+    });
+
+    // Mouse Wheel Navigation (Focal Zoom on Cursor & Axis Zoom)
     canvas.addEventListener('wheel', (e) => {
       e.preventDefault();
-      const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
-      zoomLevel = Math.max(0.4, Math.min(3.5, zoomLevel * zoomFactor));
-      renderChart();
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+      const isOverPriceAxis = mouseX >= (rect.width - PRICE_AXIS_WIDTH);
+      const isOverTimeAxis = mouseY >= (rect.height - TIME_AXIS_HEIGHT);
+
+      if (isOverPriceAxis || e.ctrlKey) {
+        // Vertical price zoom
+        const factor = e.deltaY < 0 ? 1.15 : 0.87;
+        priceZoomLevel = Math.max(0.2, Math.min(25.0, priceZoomLevel * factor));
+        renderChart();
+      } else if (isOverTimeAxis || e.shiftKey) {
+        // Horizontal scroll with wheel
+        panOffset -= e.deltaY * 0.85;
+        renderChart();
+      } else {
+        // 2D Focal Zoom centered directly on mouse pointer
+        const factor = e.deltaY < 0 ? 1.15 : 0.87;
+        const newZoom = Math.max(0.25, Math.min(8.0, zoomLevel * factor));
+        if (newZoom !== zoomLevel) {
+          const focalOffset = mouseX - (25 + panOffset);
+          const scaleRatio = newZoom / zoomLevel;
+          panOffset = mouseX - 25 - focalOffset * scaleRatio;
+          zoomLevel = newZoom;
+          renderChart();
+        }
+      }
     }, { passive: false });
 
     // Window Controls
@@ -1292,7 +1502,21 @@
     }
     window.addEventListener('resize', resizeCanvas);
 
-    // Chart Renderer
+    // Dynamic Price Grid Nice Step Calculation
+    function calcNicePriceStep(raw) {
+      if (raw <= 0 || !isFinite(raw)) return 1.0;
+      const exp = Math.floor(Math.log10(raw));
+      const frac = raw / Math.pow(10, exp);
+      let mult;
+      if (frac < 1.35) mult = 1;
+      else if (frac < 2.5) mult = 2;
+      else if (frac < 4.0) mult = 2.5;
+      else if (frac < 7.5) mult = 5;
+      else mult = 10;
+      return mult * Math.pow(10, exp);
+    }
+
+    // Chart Renderer with Dynamic Price Grid & Navigation
     function renderChart() {
       const rect = canvas.getBoundingClientRect();
       const w = rect.width;
@@ -1315,57 +1539,184 @@
       const nGhost = ghosts.length;
       const totalBars = nHist + nGhost;
 
-      const defaultBarWidth = Math.max(4, Math.min(22, (w * 0.88) / totalBars));
+      const plotW = Math.max(80, w - PRICE_AXIS_WIDTH);
+      const plotH = Math.max(80, h - TIME_AXIS_HEIGHT - PLOT_TOP);
+      const plotBottom = PLOT_TOP + plotH;
+
+      const defaultBarWidth = Math.max(4, Math.min(22, (plotW * 0.88) / totalBars));
       const barWidth = defaultBarWidth * zoomLevel;
       const barSpacing = barWidth * 0.35;
       const slotWidth = barWidth + barSpacing;
-
-      let minP = Infinity;
-      let maxP = -Infinity;
-
-      for (let b of hist) {
-        if (b.low < minP) minP = b.low;
-        if (b.high > maxP) maxP = b.high;
-      }
-      if (fan.p10 && fan.p90) {
-        for (let v of fan.p10) if (v < minP) minP = v;
-        for (let v of fan.p90) if (v > maxP) maxP = v;
-      }
-      for (let g of ghosts) {
-        if (g.low < minP) minP = g.low;
-        if (g.high > maxP) maxP = g.high;
-      }
-
-      const range = maxP - minP || 10;
-      const yMin = minP - range * 0.08;
-      const yMax = maxP + range * 0.08;
-
-      function priceToY(p) { return h - 35 - ((p - yMin) / (yMax - yMin)) * (h - 60); }
       const chartStartX = 25 + panOffset;
 
-      // Grid Lines
-      ctx.strokeStyle = "#1a1d22";
-      ctx.lineWidth = 1;
-      const priceSteps = 6;
-      for (let s = 0; s <= priceSteps; s++) {
-        const gridP = yMin + (range * s) / priceSteps;
-        const y = priceToY(gridP);
+      // 1. Data boundaries across entire dataset
+      let dataMinP = Infinity;
+      let dataMaxP = -Infinity;
+      for (let b of hist) {
+        if (b.low < dataMinP) dataMinP = b.low;
+        if (b.high > dataMaxP) dataMaxP = b.high;
+      }
+      if (fan.p10 && fan.p90) {
+        for (let v of fan.p10) if (v < dataMinP) dataMinP = v;
+        for (let v of fan.p90) if (v > dataMaxP) dataMaxP = v;
+      }
+      for (let g of ghosts) {
+        if (g.low < dataMinP) dataMinP = g.low;
+        if (g.high > dataMaxP) dataMaxP = g.high;
+      }
+      if (!isFinite(dataMinP)) dataMinP = 2600;
+      if (!isFinite(dataMaxP)) dataMaxP = 2700;
+
+      // 2. Visible bars price range (Dynamic Grid zoom sensitivity)
+      let visMinP = Infinity;
+      let visMaxP = -Infinity;
+      let visibleCount = 0;
+
+      for (let i = 0; i < nHist; i++) {
+        const x = chartStartX + i * slotWidth;
+        if (x + slotWidth >= 0 && x <= plotW) {
+          const b = hist[i];
+          if (b.low < visMinP) visMinP = b.low;
+          if (b.high > visMaxP) visMaxP = b.high;
+          visibleCount++;
+        }
+      }
+      for (let t = 0; t < nGhost; t++) {
+        const x = chartStartX + (nHist + t) * slotWidth;
+        if (x + slotWidth >= 0 && x <= plotW) {
+          const g = ghosts[t];
+          if (g.low < visMinP) visMinP = g.low;
+          if (g.high > visMaxP) visMaxP = g.high;
+          if (fan.p10 && fan.p10[t] < visMinP) visMinP = fan.p10[t];
+          if (fan.p90 && fan.p90[t] > visMaxP) visMaxP = fan.p90[t];
+          visibleCount++;
+        }
+      }
+      if (!isFinite(visMinP) || !isFinite(visMaxP) || visMaxP <= visMinP) {
+        visMinP = dataMinP;
+        visMaxP = dataMaxP;
+      }
+
+      // Vertical price scale with user vertical zoom & pan
+      const baseRange = visMaxP - visMinP || 10;
+      const paddedRange = (baseRange * 1.15) / priceZoomLevel;
+      const centerP = (visMaxP + visMinP) / 2;
+      const pricePerPixel = paddedRange / plotH;
+      const yOffsetInPrice = panOffsetY * pricePerPixel;
+
+      const yMin = centerP - paddedRange / 2 + yOffsetInPrice;
+      const yMax = centerP + paddedRange / 2 + yOffsetInPrice;
+
+      function priceToY(p) { return plotBottom - ((p - yMin) / (yMax - yMin)) * plotH; }
+      function yToPrice(y) { return yMin + ((plotBottom - y) / plotH) * (yMax - yMin); }
+
+      // 3. Dynamic Price Grid Calculation
+      // As user zooms in, visibleSpan shrinks and target density yields tighter step multiples
+      const visibleSpan = yMax - yMin;
+      const targetLines = Math.max(6, Math.min(32, Math.floor(plotH / 42)));
+      const rawStep = visibleSpan / targetLines;
+      const niceStep = calcNicePriceStep(rawStep);
+      const priceDecimals = niceStep < 0.05 ? 3 : (niceStep < 1 ? 2 : 2);
+
+      // Draw Horizontal Price Grid Lines
+      const firstPrice = Math.ceil(yMin / niceStep) * niceStep;
+      for (let p = firstPrice; p <= yMax + niceStep * 0.01; p += niceStep) {
+        const y = priceToY(p);
+        if (y < PLOT_TOP - 2 || y > plotBottom + 2) continue;
+
+        ctx.strokeStyle = "#1a1d24";
+        ctx.lineWidth = 1;
+        ctx.setLineDash([2, 4]);
         ctx.beginPath();
         ctx.moveTo(0, y);
-        ctx.lineTo(w, y);
+        ctx.lineTo(plotW, y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Tick mark on axis
+        ctx.strokeStyle = "#2e3440";
+        ctx.beginPath();
+        ctx.moveTo(plotW, y);
+        ctx.lineTo(plotW + 4, y);
         ctx.stroke();
 
-        ctx.fillStyle = "#4b5563";
-        ctx.font = "10.5px monospace";
-        ctx.textAlign = "right";
-        ctx.fillText(gridP.toFixed(2), w - 8, y - 3);
+        // Label on right price scale
+        ctx.fillStyle = "#64748b";
+        ctx.font = "10.5px 'JetBrains Mono', 'Segoe UI Mono', monospace";
+        ctx.textAlign = "left";
+        ctx.fillText(p.toFixed(priceDecimals), plotW + 7, y + 3.5);
       }
+
+      // 4. Dynamic Time Grid Lines & Labels
+      const timeStepBars = Math.max(1, Math.round(80 / slotWidth));
+      for (let i = 0; i < totalBars; i += timeStepBars) {
+        const x = chartStartX + i * slotWidth + barWidth / 2;
+        if (x < -20 || x > plotW + 20) continue;
+
+        ctx.strokeStyle = "#15181e";
+        ctx.lineWidth = 1;
+        ctx.setLineDash([2, 4]);
+        ctx.beginPath();
+        ctx.moveTo(x, PLOT_TOP);
+        ctx.lineTo(x, plotBottom);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Time tick mark
+        ctx.strokeStyle = "#2e3440";
+        ctx.beginPath();
+        ctx.moveTo(x, plotBottom);
+        ctx.lineTo(x, plotBottom + 4);
+        ctx.stroke();
+
+        let ts = "";
+        if (i < nHist) ts = hist[i].timestamp || "";
+        else if (ghosts[i - nHist]) ts = ghosts[i - nHist].timestamp || "";
+        if (ts) {
+          const parts = ts.split(" ");
+          const shortTs = parts.length > 1 ? parts[1] : ts;
+          ctx.fillStyle = "#64748b";
+          ctx.font = "10px -apple-system, sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText(shortTs, x, plotBottom + 16);
+        }
+      }
+
+      // 5. Market Price Reference Line (T0 Close)
+      if (nHist > 0) {
+        const lastRealClose = hist[nHist - 1].close;
+        const lastY = priceToY(lastRealClose);
+        if (lastY >= PLOT_TOP && lastY <= plotBottom) {
+          ctx.strokeStyle = "rgba(56, 189, 248, 0.65)";
+          ctx.lineWidth = 1;
+          ctx.setLineDash([3, 3]);
+          ctx.beginPath();
+          ctx.moveTo(0, lastY);
+          ctx.lineTo(plotW, lastY);
+          ctx.stroke();
+          ctx.setLineDash([]);
+
+          // Last price pill on price scale
+          ctx.fillStyle = "#0284c7";
+          ctx.fillRect(plotW + 1, lastY - 8, PRICE_AXIS_WIDTH - 2, 16);
+          ctx.fillStyle = "#ffffff";
+          ctx.font = "bold 10px monospace";
+          ctx.textAlign = "left";
+          ctx.fillText(lastRealClose.toFixed(2), plotW + 5, lastY + 3.5);
+        }
+      }
+
+      // 6. Clipped Render of Candlesticks & Fan Corridors
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(0, PLOT_TOP - 2, plotW, plotH + 4);
+      ctx.clip();
 
       // Historical Candlesticks
       for (let i = 0; i < nHist; i++) {
         const b = hist[i];
         const x = chartStartX + i * slotWidth;
-        if (x < -slotWidth || x > w + slotWidth) continue;
+        if (x < -slotWidth || x > plotW + slotWidth) continue;
 
         const isBull = b.close >= b.open;
         const color = isBull ? "#10b981" : "#ef4444";
@@ -1388,22 +1739,22 @@
         ctx.fillRect(x, bodyTop, barWidth, bodyHeight);
       }
 
-      // Divider Line T_0
+      // Divider Line T_0 NOW
       const splitX = chartStartX + nHist * slotWidth - barSpacing / 2;
       ctx.strokeStyle = "#475569";
       ctx.setLineDash([4, 4]);
       ctx.beginPath();
-      ctx.moveTo(splitX, 10);
-      ctx.lineTo(splitX, h - 30);
+      ctx.moveTo(splitX, PLOT_TOP);
+      ctx.lineTo(splitX, plotBottom);
       ctx.stroke();
       ctx.setLineDash([]);
 
       ctx.fillStyle = "#94a3b8";
       ctx.font = "10px -apple-system, sans-serif";
       ctx.textAlign = "center";
-      ctx.fillText("T₀ NOW", splitX, 22);
+      ctx.fillText("T₀ NOW", splitX, PLOT_TOP + 12);
 
-      // Fan Chart
+      // Fan Chart Corridors
       if (viewMode === 'fan' || viewMode === 'hybrid') {
         const p10 = fan.p10 || [];
         const p25 = fan.p25 || [];
@@ -1415,7 +1766,7 @@
         const startX = chartStartX + (nHist - 1) * slotWidth + barWidth / 2;
         const startY = priceToY(lastBar.close);
 
-        // P10-P90
+        // P10-P90 Corridor
         ctx.fillStyle = "rgba(6, 182, 212, 0.12)";
         ctx.beginPath();
         ctx.moveTo(startX, startY);
@@ -1430,7 +1781,7 @@
         ctx.closePath();
         ctx.fill();
 
-        // P25-P75
+        // P25-P75 Core
         ctx.fillStyle = "rgba(56, 189, 248, 0.25)";
         ctx.beginPath();
         ctx.moveTo(startX, startY);
@@ -1445,7 +1796,7 @@
         ctx.closePath();
         ctx.fill();
 
-        // Raw paths
+        // Raw Monte Carlo Paths
         if (fan.raw_paths) {
           ctx.lineWidth = 0.8;
           ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
@@ -1460,7 +1811,7 @@
           }
         }
 
-        // P50 Median Line
+        // P50 Median Trajectory Line
         ctx.strokeStyle = "#38bdf8";
         ctx.lineWidth = 2.4;
         ctx.beginPath();
@@ -1472,12 +1823,12 @@
         ctx.stroke();
       }
 
-      // Ghost Candlesticks
+      // Ghost Candlesticks (Quantile Envelope)
       if (viewMode === 'ghost' || viewMode === 'hybrid') {
         for (let t = 0; t < nGhost; t++) {
           const g = ghosts[t];
           const x = chartStartX + (nHist + t) * slotWidth;
-          if (x < -slotWidth || x > w + slotWidth) continue;
+          if (x < -slotWidth || x > plotW + slotWidth) continue;
 
           const isBull = g.close >= g.open;
           const strokeCol = isBull ? "#10b981" : "#ef4444";
@@ -1507,31 +1858,94 @@
         }
       }
 
-      // Crosshair
-      if (hoverIndex >= 0 && hoverIndex < totalBars) {
-        const hoverX = chartStartX + hoverIndex * slotWidth + barWidth / 2;
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.25)";
+      ctx.restore(); // Restore clipping
+
+      // 7. Right Price Scale Separator & Bottom Time Separator
+      ctx.strokeStyle = "#1e222a";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(plotW, 0);
+      ctx.lineTo(plotW, h);
+      ctx.moveTo(0, plotBottom);
+      ctx.lineTo(w, plotBottom);
+      ctx.stroke();
+
+      // 8. Crosshair & Axis Floating Badges
+      if (mousePos.x >= 0 && mousePos.x <= plotW && mousePos.y >= PLOT_TOP && mousePos.y <= plotBottom) {
+        // Crosshair Lines
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.28)";
+        ctx.lineWidth = 1;
         ctx.setLineDash([3, 3]);
+
+        // Horizontal line
         ctx.beginPath();
-        ctx.moveTo(hoverX, 0);
-        ctx.lineTo(hoverX, h - 30);
+        ctx.moveTo(0, mousePos.y);
+        ctx.lineTo(plotW, mousePos.y);
+        ctx.stroke();
+
+        // Vertical line
+        ctx.beginPath();
+        ctx.moveTo(mousePos.x, PLOT_TOP);
+        ctx.lineTo(mousePos.x, plotBottom);
         ctx.stroke();
         ctx.setLineDash([]);
+
+        // Interactive Price Badge on Right Axis
+        const curHoverPrice = yToPrice(mousePos.y);
+        ctx.fillStyle = "#334155";
+        ctx.fillRect(plotW + 1, mousePos.y - 8, PRICE_AXIS_WIDTH - 2, 16);
+        ctx.strokeStyle = "#94a3b8";
+        ctx.strokeRect(plotW + 1, mousePos.y - 8, PRICE_AXIS_WIDTH - 2, 16);
+        ctx.fillStyle = "#f8fafc";
+        ctx.font = "bold 10px monospace";
+        ctx.textAlign = "left";
+        ctx.fillText(curHoverPrice.toFixed(priceDecimals), plotW + 5, mousePos.y + 3.5);
+
+        // Interactive Time Badge on Bottom Axis
+        if (hoverIndex >= 0 && hoverIndex < totalBars) {
+          let hTs = "";
+          if (hoverIndex < nHist) hTs = hist[hoverIndex].timestamp;
+          else if (ghosts[hoverIndex - nHist]) hTs = ghosts[hoverIndex - nHist].timestamp;
+          if (hTs) {
+            const badgeW = 74;
+            ctx.fillStyle = "#334155";
+            ctx.fillRect(mousePos.x - badgeW / 2, plotBottom + 1, badgeW, 16);
+            ctx.strokeStyle = "#94a3b8";
+            ctx.strokeRect(mousePos.x - badgeW / 2, plotBottom + 1, badgeW, 16);
+            ctx.fillStyle = "#f8fafc";
+            ctx.font = "bold 9.5px monospace";
+            ctx.textAlign = "center";
+            const parts = hTs.split(" ");
+            ctx.fillText(parts.length > 1 ? parts[1] : hTs, mousePos.x, plotBottom + 12);
+          }
+        }
       }
     }
 
-    // Tooltip
+    // Tooltip Hover Logic
     function handleCanvasHover(e) {
       if (!currentForecastData || !currentForecastData.history) return;
       const rect = canvas.getBoundingClientRect();
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
 
+      mousePos = { x: mouseX, y: mouseY };
+
+      const plotW = Math.max(80, rect.width - PRICE_AXIS_WIDTH);
+      const plotH = Math.max(80, rect.height - TIME_AXIS_HEIGHT - PLOT_TOP);
+
+      if (mouseX > plotW || mouseY > rect.height - TIME_AXIS_HEIGHT || mouseX < 0 || mouseY < PLOT_TOP) {
+        hoverIndex = -1;
+        tooltip.style.display = 'none';
+        renderChart();
+        return;
+      }
+
       const hist = currentForecastData.history;
       const ghosts = currentForecastData.ghost_candles || [];
       const totalBars = hist.length + ghosts.length;
 
-      const defaultBarWidth = Math.max(4, Math.min(22, (rect.width * 0.88) / totalBars));
+      const defaultBarWidth = Math.max(4, Math.min(22, (plotW * 0.88) / totalBars));
       const barWidth = defaultBarWidth * zoomLevel;
       const slotWidth = barWidth * 1.35;
       const chartStartX = 25 + panOffset;
@@ -1567,16 +1981,21 @@
 
         tooltip.innerHTML = html;
         tooltip.style.display = 'block';
-        tooltip.style.left = `${Math.min(rect.width - 180, mouseX + 16)}px`;
+        tooltip.style.left = `${Math.min(rect.width - 200, mouseX + 16)}px`;
         tooltip.style.top = `${Math.max(10, mouseY - 20)}px`;
-        renderChart();
       } else {
         hoverIndex = -1;
         tooltip.style.display = 'none';
-        renderChart();
       }
+      renderChart();
     }
-    canvas.addEventListener('mouseleave', () => { hoverIndex = -1; tooltip.style.display = 'none'; renderChart(); });
+
+    canvas.addEventListener('mouseleave', () => {
+      mousePos = { x: -1, y: -1 };
+      hoverIndex = -1;
+      tooltip.style.display = 'none';
+      renderChart();
+    });
 
     // Deck Cards
     function updateHorizonCards(horizons) {
