@@ -29,6 +29,11 @@
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
 
+    :focus-visible {
+      outline: 2px solid var(--accent-blue) !important;
+      outline-offset: 1px;
+    }
+
     body {
       background-color: var(--bg-window);
       color: var(--text-main);
@@ -198,6 +203,8 @@
     .win-btn {
       width: 44px;
       height: 100%;
+      background: transparent;
+      border: none;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -586,9 +593,9 @@
       </div>
 
       <div class="window-controls">
-        <div class="win-btn" id="winMin">—</div>
-        <div class="win-btn" id="winMax">□</div>
-        <div class="win-btn close" id="winClose">✕</div>
+        <button class="win-btn" id="winMin" aria-label="Minimize Window" title="Minimize">—</button>
+        <button class="win-btn" id="winMax" aria-label="Maximize Window" title="Maximize">□</button>
+        <button class="win-btn close" id="winClose" aria-label="Close Window" title="Close">✕</button>
       </div>
     </div>
   </header>
@@ -635,12 +642,12 @@
             <button class="mode-btn" id="modeGhost">🕯️ Ghost Candles</button>
           </div>
           <div class="tool-sep"></div>
-          <div class="tool-btn" id="btnZoomIn" title="Zoom In">+</div>
-          <div class="tool-btn" id="btnZoomOut" title="Zoom Out">-</div>
-          <div class="tool-btn reset" id="btnResetView" title="Reset View">↺ Reset</div>
+          <button class="tool-btn" id="btnZoomIn" title="Zoom In (+)" aria-label="Zoom In (+)">+</button>
+          <button class="tool-btn" id="btnZoomOut" title="Zoom Out (-)" aria-label="Zoom Out (-)">-</button>
+          <button class="tool-btn reset" id="btnResetView" title="Reset View (0 / Double Click Canvas)" aria-label="Reset View (0)">↺ Reset</button>
         </div>
 
-        <canvas id="kronosCanvas"></canvas>
+        <canvas id="kronosCanvas" title="Drag untuk menggeser chart • Scroll atau tekan +/- untuk zoom • Klik 2x atau tekan 0 untuk reset"></canvas>
         <div id="chartTooltip"></div>
       </div>
 
@@ -761,9 +768,23 @@
     btnGhost.addEventListener('click', () => setViewMode('ghost'));
 
     // Zoom & Pan
+    function resetView() {
+      zoomLevel = 1.0;
+      panOffset = 0;
+      renderChart();
+    }
+
     document.getElementById('btnZoomIn').addEventListener('click', () => { zoomLevel = Math.min(3.0, zoomLevel * 1.25); renderChart(); });
     document.getElementById('btnZoomOut').addEventListener('click', () => { zoomLevel = Math.max(0.4, zoomLevel / 1.25); renderChart(); });
-    document.getElementById('btnResetView').addEventListener('click', () => { zoomLevel = 1.0; panOffset = 0; renderChart(); });
+    document.getElementById('btnResetView').addEventListener('click', resetView);
+    canvas.addEventListener('dblclick', resetView);
+
+    window.addEventListener('keydown', (e) => {
+      if (['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
+      if (e.key === '+' || e.key === '=') { zoomLevel = Math.min(3.0, zoomLevel * 1.25); renderChart(); }
+      else if (e.key === '-' || e.key === '_') { zoomLevel = Math.max(0.4, zoomLevel / 1.25); renderChart(); }
+      else if (e.key === '0') { resetView(); }
+    });
 
     canvas.addEventListener('mousedown', (e) => { isDragging = true; dragStartX = e.clientX - panOffset; canvas.classList.add('panning'); });
     window.addEventListener('mouseup', () => { isDragging = false; canvas.classList.remove('panning'); });
