@@ -44,12 +44,12 @@ TIMEFRAME_LOOKBACK = {
 
 # Maximum tolerable age for cached data while market is active
 CACHE_MAX_AGE = {
-    "M1": datetime.timedelta(minutes=15),
-    "M5": datetime.timedelta(minutes=45),
-    "M15": datetime.timedelta(hours=2),
-    "H1": datetime.timedelta(hours=6),
-    "H4": datetime.timedelta(hours=24),
-    "D1": datetime.timedelta(days=3),
+    "M1": datetime.timedelta(minutes=5),
+    "M5": datetime.timedelta(minutes=10),
+    "M15": datetime.timedelta(minutes=30),
+    "H1": datetime.timedelta(hours=2),
+    "H4": datetime.timedelta(hours=8),
+    "D1": datetime.timedelta(days=1),
 }
 
 

@@ -1329,9 +1329,10 @@
     btnFan.addEventListener('click', () => setViewMode('fan'));
     btnGhost.addEventListener('click', () => setViewMode('ghost'));
 
-    // --- Dukascopy Real-Time Live Feed Toggle & Dispatch ---
+    // --- Dukascopy Real-Time Live Feed Toggle & Polling Dispatch ---
     const btnLiveToggle = document.getElementById('btnLiveToggle');
     const lblLiveText = document.getElementById('lblLiveText');
+    let livePollTimer = null;
 
     function updateLiveToggleUI(active) {
       isLiveActive = active;
@@ -1344,10 +1345,44 @@
       }
     }
 
+    async function pollLiveUpdate() {
+      if (!isLiveActive) return;
+      try {
+        if (window.pywebview && window.pywebview.api && window.pywebview.api.get_live_candle) {
+          const currentTf = (document.getElementById('timeframeSelect')?.value || 'M5').toUpperCase();
+          const raw = await window.pywebview.api.get_live_candle(currentTf);
+          const res = typeof raw === 'string' ? JSON.parse(raw) : raw;
+          if (res && res.success) {
+            window.onLiveCandleUpdate(res);
+          }
+        }
+      } catch (err) {
+        console.debug("Live poll notice:", err);
+      }
+    }
+
+    function startLivePolling() {
+      if (livePollTimer) clearInterval(livePollTimer);
+      pollLiveUpdate(); // Immediate update on trigger
+      livePollTimer = setInterval(pollLiveUpdate, 2000);
+    }
+
+    function stopLivePolling() {
+      if (livePollTimer) {
+        clearInterval(livePollTimer);
+        livePollTimer = null;
+      }
+    }
+
     if (btnLiveToggle) {
       btnLiveToggle.addEventListener('click', async () => {
         const nextState = !isLiveActive;
         updateLiveToggleUI(nextState);
+        if (nextState) {
+          startLivePolling();
+        } else {
+          stopLivePolling();
+        }
         try {
           if (window.pywebview && window.pywebview.api && window.pywebview.api.toggle_live_feed) {
             await window.pywebview.api.toggle_live_feed(nextState);
@@ -1358,16 +1393,12 @@
       });
     }
 
-    // Direct callback pushed by background streaming daemon in Python
+    // Direct callback pushed by background streaming daemon or active JS poller
     window.onLiveCandleUpdate = function(res) {
       if (!res || !res.success) return;
-      const currentTf = (document.getElementById('timeframeSelect')?.value || 'M5').toUpperCase();
-      if (res.timeframe && res.timeframe.toUpperCase() !== currentTf) {
-        return;
-      }
 
-      currentLiveCandle = res.candle;
-      currentTicker = res.ticker;
+      // Always update real-time ticker prices (Bid, Ask, Spread, Latency) globally
+      currentTicker = res.ticker || currentTicker;
       const barProg = res.bar_progress;
 
       // 1. Tick pulse effect for live price
@@ -1406,7 +1437,15 @@
         }
       }
 
-      // 4. Redraw chart with forming live candle
+      // 4. Update candle shape if timeframe matches active chart
+      const currentTf = (document.getElementById('timeframeSelect')?.value || 'M5').toUpperCase();
+      if (!res.timeframe || res.timeframe.toUpperCase() === currentTf) {
+        if (res.candle) {
+          currentLiveCandle = res.candle;
+        }
+      }
+
+      // 5. Redraw chart with forming live candle & dynamic price tracking line
       if (currentForecastData && currentForecastData.history) {
         renderChart();
       }
@@ -2668,6 +2707,7 @@
           await window.pywebview.api.set_timeframe(newTf);
         }
       } catch(e) {}
+      pollLiveUpdate();
       runForecast();
     });
 
@@ -2734,11 +2774,22 @@
         console.warn("localStorage restore warning:", err);
       }
 
+      // 1b. Synchronize initial timeframe with backend & start active live polling
+      const initialTf = (document.getElementById('timeframeSelect')?.value || 'M5').toUpperCase();
+      try {
+        if (window.pywebview && window.pywebview.api && window.pywebview.api.set_timeframe) {
+          await window.pywebview.api.set_timeframe(initialTf);
+        }
+      } catch(e) {}
+
+      // Start active real-time live polling immediately
+      startLivePolling();
+
       // 2. Fetch live status from backend
       try {
         const raw = await window.pywebview.api.get_status();
         const status = JSON.parse(raw);
-        if (status.last_price > 0) {
+        if (status.last_price > 0 && !currentTicker) {
           document.getElementById('lblLivePrice').textContent = status.last_price.toFixed(2);
           document.getElementById('lblLastSync').textContent = status.last_sync;
         }

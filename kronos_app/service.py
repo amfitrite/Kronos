@@ -25,7 +25,7 @@ class KronosService:
         self.feed = DukascopyFeed(cache_dir=self.data_dir)
         self.engine = KronosMonteCarloEngine(model_type="mini")
         self.validator = WalkForwardValidator(engine=self.engine, results_dir=self.data_dir)
-        self.current_timeframe = "H1"
+        self.current_timeframe = "M5"
         self._cached_forecast: Optional[Dict[str, Any]] = None
         self._cached_df: Optional[pd.DataFrame] = None
 
@@ -169,6 +169,7 @@ class KronosService:
 
         now_utc = datetime.now(timezone.utc).replace(tzinfo=None)
         market_open = is_market_open(now_utc)
+        live_px = self.feed._last_known_price if self.feed._last_known_price > 0 else last_price
 
         return {
             "model_name": self.engine.model_name,
@@ -184,7 +185,8 @@ class KronosService:
             "market_session_status": "OPEN (Interbank ECN)" if market_open else "CLOSED (Weekend / Rollover)",
             "cached_bars": cached_count,
             "last_sync": last_sync,
-            "last_price": round(last_price, 3),
+            "last_price": round(live_px, 3),
+            "historical_close": round(last_price, 3),
             "walk_forward_m1_ready": m1_wf_exists,
             "walk_forward_m5_ready": m5_wf_exists,
             "is_computing": self._is_computing
@@ -294,10 +296,9 @@ class KronosService:
                 )
                 self.engine.set_model_type(model_type)
                 self.current_timeframe = timeframe.upper()
-                if self._cached_df is None or getattr(self, '_loaded_timeframe', None) != self.current_timeframe:
-                    load_res = self.load_data(timeframe=self.current_timeframe)
-                    if not load_res.get("success", False):
-                        raise RuntimeError(load_res.get("error", "DATA UNAVAILABLE: Failed to fetch candle data."))
+                load_res = self.load_data(timeframe=self.current_timeframe)
+                if not load_res.get("success", False):
+                    raise RuntimeError(load_res.get("error", "DATA UNAVAILABLE: Failed to fetch candle data."))
 
                 df = self._cached_df
                 if df is None or len(df) < 30:
