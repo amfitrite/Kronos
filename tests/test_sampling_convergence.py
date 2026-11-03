@@ -58,6 +58,12 @@ class TestSamplingConvergence(unittest.TestCase):
         # Low sample count (< 50) should be flagged LOW CONFIDENCE
         self.assertEqual(diag["convergence_status"], "LOW CONFIDENCE")
 
+    def test_chunked_sampling_memory_safety(self):
+        """Validates that chunked Monte Carlo sampling runs safely across multiple chunks (e.g. 130 samples) without memory errors."""
+        res = self.engine.predict_monte_carlo(self.df, pred_len=4, sample_count=130, seed=42)
+        self.assertEqual(len(res["fan_chart"]["p50"]), 4)
+        self.assertEqual(res["sampling_diagnostics"]["sample_count"], 130)
+
 
 if __name__ == "__main__":
     unittest.main()

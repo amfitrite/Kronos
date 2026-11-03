@@ -217,91 +217,110 @@ class KronosMonteCarloEngine:
         x_norm = np.clip((x_raw - x_mean) / x_std, -self.clip, self.clip)
 
         seq_len = x_norm.shape[0]
-        # Bolt ⚡ Performance Optimization:
-        # The historical context series is identical across all Monte Carlo paths.
-        # Running the multi-layer neural network tokenizer on identical batch slices wastes CPU cycles.
-        # Encoding once with batch_size=1 and repeating the discrete token IDs yields identical
-        # tensors while cutting tokenizer CPU time by 4x-14x (e.g. 1380ms down to 99ms for 20 paths).
-        x_single = torch.from_numpy(x_norm).unsqueeze(0).to(self.device)
-        x_stamp_tensor = torch.from_numpy(x_stamp_raw).unsqueeze(0).repeat(sample_count, 1, 1).to(self.device)
-        y_stamp_tensor = torch.from_numpy(y_stamp_raw).unsqueeze(0).repeat(sample_count, 1, 1).to(self.device)
+        # Bolt ⚡ Chunked Performance & Memory Guard:
+        # Avoid allocating gigantic monolithic tensors that crash DefaultCPUAllocator (e.g. 1.31GB for 10k samples).
+        # We encode the historical context once (batch_size=1) and process Monte Carlo paths in memory-safe chunks.
+        if "cuda" in str(self.device).lower():
+            chunk_size = min(sample_count, 128)
+        else:
+            chunk_size = 32 if self.model_type == "base" else 64
+            chunk_size = max(1, min(sample_count, chunk_size))
 
-        logger.info(f"Generating {sample_count} Monte Carlo paths ({self.model_type}) for {pred_len} bars...")
+        num_chunks = math.ceil(sample_count / chunk_size)
+
+        x_single = torch.from_numpy(x_norm).unsqueeze(0).to(self.device)
+        full_stamp_single = torch.cat([
+            torch.from_numpy(x_stamp_raw).unsqueeze(0),
+            torch.from_numpy(y_stamp_raw).unsqueeze(0)
+        ], dim=1).to(self.device)
+
+        logger.info(
+            f"Generating {sample_count} Monte Carlo paths ({self.model_type}) for {pred_len} bars "
+            f"in {num_chunks} chunk(s) of size <= {chunk_size}..."
+        )
+
         with torch.no_grad():
             x_token_single = self.tokenizer.encode(x_single, half=True)
-            x_token = [
-                x_token_single[0].repeat(sample_count, 1),
-                x_token_single[1].repeat(sample_count, 1)
-            ]
-            batch_size = sample_count
+            all_decoded_chunks = []
+            total_work_steps = num_chunks * pred_len
 
-            generated_pre = x_token[0].new_empty(batch_size, pred_len)
-            generated_post = x_token[1].new_empty(batch_size, pred_len)
+            for chunk_idx in range(num_chunks):
+                current_chunk_size = min(chunk_size, sample_count - chunk_idx * chunk_size)
 
-            pre_buffer = x_token[0].new_zeros(batch_size, self.max_context)
-            post_buffer = x_token[1].new_zeros(batch_size, self.max_context)
-            buffer_len = min(seq_len, self.max_context)
-            if buffer_len > 0:
-                start_idx = max(0, seq_len - self.max_context)
-                pre_buffer[:, :buffer_len] = x_token[0][:, start_idx:start_idx + buffer_len]
-                post_buffer[:, :buffer_len] = x_token[1][:, start_idx:start_idx + buffer_len]
+                chunk_x_token_0 = x_token_single[0].repeat(current_chunk_size, 1)
+                chunk_x_token_1 = x_token_single[1].repeat(current_chunk_size, 1)
 
-            full_stamp = torch.cat([x_stamp_tensor, y_stamp_tensor], dim=1)
+                chunk_gen_pre = chunk_x_token_0.new_empty(current_chunk_size, pred_len)
+                chunk_gen_post = chunk_x_token_1.new_empty(current_chunk_size, pred_len)
 
-            for i in range(pred_len):
-                if progress_callback:
-                    try:
-                        progress_callback(i + 1, pred_len, (i + 1) / pred_len)
-                    except Exception:
-                        pass
+                pre_buffer = chunk_x_token_0.new_zeros(current_chunk_size, self.max_context)
+                post_buffer = chunk_x_token_1.new_zeros(current_chunk_size, self.max_context)
+                buffer_len = min(seq_len, self.max_context)
+                if buffer_len > 0:
+                    start_idx = max(0, seq_len - self.max_context)
+                    pre_buffer[:, :buffer_len] = chunk_x_token_0[:, start_idx:start_idx + buffer_len]
+                    post_buffer[:, :buffer_len] = chunk_x_token_1[:, start_idx:start_idx + buffer_len]
 
-                current_seq_len = seq_len + i
-                window_len = min(current_seq_len, self.max_context)
+                chunk_full_stamp = full_stamp_single.repeat(current_chunk_size, 1, 1)
 
-                if current_seq_len <= self.max_context:
-                    input_tokens = [
-                        pre_buffer[:, :window_len],
-                        post_buffer[:, :window_len]
-                    ]
-                else:
-                    input_tokens = [pre_buffer, post_buffer]
+                for i in range(pred_len):
+                    if progress_callback:
+                        step_global = chunk_idx * pred_len + (i + 1)
+                        try:
+                            progress_callback(step_global, total_work_steps, step_global / total_work_steps)
+                        except Exception:
+                            pass
 
-                context_end = current_seq_len
-                context_start = max(0, context_end - self.max_context)
-                current_stamp = full_stamp[:, context_start:context_end, :].contiguous()
+                    current_seq_len = seq_len + i
+                    window_len = min(current_seq_len, self.max_context)
 
-                s1_logits, context = self.model.decode_s1(input_tokens[0], input_tokens[1], current_stamp)
-                s1_logits = s1_logits[:, -1, :]
-                sample_pre = sample_from_logits(s1_logits, temperature=temperature, top_k=top_k, top_p=top_p, sample_logits=True)
+                    if current_seq_len <= self.max_context:
+                        input_tokens = [
+                            pre_buffer[:, :window_len],
+                            post_buffer[:, :window_len]
+                        ]
+                    else:
+                        input_tokens = [pre_buffer, post_buffer]
 
-                s2_logits = self.model.decode_s2(context, sample_pre)
-                s2_logits = s2_logits[:, -1, :]
-                sample_post = sample_from_logits(s2_logits, temperature=temperature, top_k=top_k, top_p=top_p, sample_logits=True)
+                    context_end = current_seq_len
+                    context_start = max(0, context_end - self.max_context)
+                    current_stamp = chunk_full_stamp[:, context_start:context_end, :].contiguous()
 
-                generated_pre[:, i] = sample_pre.squeeze(-1)
-                generated_post[:, i] = sample_post.squeeze(-1)
+                    s1_logits, context = self.model.decode_s1(input_tokens[0], input_tokens[1], current_stamp)
+                    s1_logits = s1_logits[:, -1, :]
+                    sample_pre = sample_from_logits(s1_logits, temperature=temperature, top_k=top_k, top_p=top_p, sample_logits=True)
 
-                if current_seq_len < self.max_context:
-                    pre_buffer[:, current_seq_len] = sample_pre.squeeze(-1)
-                    post_buffer[:, current_seq_len] = sample_post.squeeze(-1)
-                else:
-                    pre_buffer.copy_(torch.roll(pre_buffer, shifts=-1, dims=1))
-                    post_buffer.copy_(torch.roll(post_buffer, shifts=-1, dims=1))
-                    pre_buffer[:, -1] = sample_pre.squeeze(-1)
-                    post_buffer[:, -1] = sample_post.squeeze(-1)
+                    s2_logits = self.model.decode_s2(context, sample_pre)
+                    s2_logits = s2_logits[:, -1, :]
+                    sample_post = sample_from_logits(s2_logits, temperature=temperature, top_k=top_k, top_p=top_p, sample_logits=True)
 
-            # Reconstruct continuous prices
-            full_pre = torch.cat([x_token[0], generated_pre], dim=1)
-            full_post = torch.cat([x_token[1], generated_post], dim=1)
-            total_seq_len = seq_len + pred_len
+                    chunk_gen_pre[:, i] = sample_pre.squeeze(-1)
+                    chunk_gen_post[:, i] = sample_post.squeeze(-1)
 
-            context_start = max(0, total_seq_len - self.max_context)
-            input_tokens = [
-                full_pre[:, context_start:total_seq_len].contiguous(),
-                full_post[:, context_start:total_seq_len].contiguous()
-            ]
-            decoded = self.tokenizer.decode(input_tokens, half=True)
-            future_decoded = decoded[:, -pred_len:, :].cpu().numpy()
+                    if current_seq_len < self.max_context:
+                        pre_buffer[:, current_seq_len] = sample_pre.squeeze(-1)
+                        post_buffer[:, current_seq_len] = sample_post.squeeze(-1)
+                    else:
+                        pre_buffer.copy_(torch.roll(pre_buffer, shifts=-1, dims=1))
+                        post_buffer.copy_(torch.roll(post_buffer, shifts=-1, dims=1))
+                        pre_buffer[:, -1] = sample_pre.squeeze(-1)
+                        post_buffer[:, -1] = sample_post.squeeze(-1)
+
+                # Reconstruct continuous prices for this chunk
+                full_pre = torch.cat([chunk_x_token_0, chunk_gen_pre], dim=1)
+                full_post = torch.cat([chunk_x_token_1, chunk_gen_post], dim=1)
+                total_seq_len = seq_len + pred_len
+
+                context_start = max(0, total_seq_len - self.max_context)
+                input_tokens = [
+                    full_pre[:, context_start:total_seq_len].contiguous(),
+                    full_post[:, context_start:total_seq_len].contiguous()
+                ]
+                decoded = self.tokenizer.decode(input_tokens, half=True)
+                chunk_decoded = decoded[:, -pred_len:, :].cpu().numpy()
+                all_decoded_chunks.append(chunk_decoded)
+
+            future_decoded = np.concatenate(all_decoded_chunks, axis=0)
 
         scaled_samples = future_decoded * x_std + x_mean
 
