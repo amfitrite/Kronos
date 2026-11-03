@@ -99,7 +99,7 @@
       display: flex;
       align-items: center;
       gap: 7px;
-      padding: 0 14px;
+      padding: 0 12px;
       font-size: 12px;
       font-weight: 600;
       color: var(--text-muted);
@@ -137,14 +137,15 @@
     .pill {
       font-size: 11px;
       font-weight: 600;
-      padding: 4px 9px;
+      padding: 4px 8px;
       border-radius: 12px;
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 5px;
       background: #1f2125;
       border: 1px solid #2e3238;
       color: #e5e7eb;
+      white-space: nowrap;
     }
 
     .pill-dot {
@@ -155,6 +156,8 @@
 
     .pill-green .pill-dot { background: var(--accent-green); box-shadow: 0 0 6px var(--accent-green); }
     .pill-blue .pill-dot { background: var(--accent-blue); box-shadow: 0 0 6px var(--accent-blue); }
+    .pill-yellow .pill-dot { background: var(--accent-yellow); box-shadow: 0 0 6px var(--accent-yellow); }
+    .pill-red .pill-dot { background: var(--accent-red); box-shadow: 0 0 6px var(--accent-red); }
 
     .selector-select {
       background: #23252a;
@@ -166,6 +169,18 @@
       border-radius: 6px;
       outline: none;
       cursor: pointer;
+    }
+
+    .seed-input {
+      background: #23252a;
+      border: 1px solid #374151;
+      color: #e5e7eb;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 6px;
+      border-radius: 6px;
+      outline: none;
+      width: 72px;
     }
 
     .btn-run {
@@ -181,7 +196,7 @@
       align-items: center;
       gap: 6px;
       transition: opacity 0.15s, transform 0.1s;
-      min-width: 130px;
+      min-width: 120px;
       justify-content: center;
     }
 
@@ -239,7 +254,7 @@
 
     /* Subheader Strip */
     .sub-strip {
-      padding: 10px 20px;
+      padding: 8px 18px;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -254,7 +269,7 @@
     }
 
     .inst-label {
-      font-size: 18px;
+      font-size: 17px;
       font-weight: 800;
       color: #fff;
       display: flex;
@@ -273,7 +288,7 @@
     }
 
     .current-px {
-      font-size: 24px;
+      font-size: 22px;
       font-weight: 800;
       color: #ffffff;
       font-variant-numeric: tabular-nums;
@@ -281,9 +296,10 @@
 
     .meta-metrics {
       display: flex;
-      gap: 16px;
-      font-size: 12px;
+      gap: 14px;
+      font-size: 11.5px;
       color: var(--text-muted);
+      align-items: center;
     }
 
     .meta-metrics span strong { color: #e5e7eb; }
@@ -293,7 +309,7 @@
       flex: 1;
       position: relative;
       background: #121316;
-      padding: 10px 20px;
+      padding: 8px 18px;
       display: flex;
       flex-direction: column;
       min-height: 280px;
@@ -308,14 +324,15 @@
 
     .chart-legend {
       display: flex;
-      gap: 16px;
-      font-size: 11.5px;
+      gap: 14px;
+      font-size: 11px;
       font-weight: 500;
       color: #9ca3af;
+      flex-wrap: wrap;
     }
 
-    .legend-item { display: flex; align-items: center; gap: 6px; }
-    .leg-box { width: 12px; height: 8px; border-radius: 2px; }
+    .legend-item { display: flex; align-items: center; gap: 5px; }
+    .leg-box { width: 11px; height: 7px; border-radius: 2px; }
 
     #kronosCanvas {
       width: 100%;
@@ -330,15 +347,15 @@
     /* Floating Toolbar */
     .chart-floating-toolbar {
       position: absolute;
-      top: 42px;
-      right: 24px;
+      top: 38px;
+      right: 22px;
       display: flex;
       align-items: center;
       gap: 6px;
       background: rgba(20, 22, 26, 0.92);
       backdrop-filter: blur(8px);
       border: 1px solid #2d313b;
-      padding: 4px 8px;
+      padding: 3px 8px;
       border-radius: 6px;
       z-index: 10;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
@@ -390,30 +407,46 @@
     .tool-btn.reset { width: auto; padding: 0 8px; font-size: 11px; font-weight: 600; color: #9ca3af; }
 
     /* Bottom Multi-Horizon Deck */
-    .horizon-cards-deck {
-      min-height: 160px;
-      max-height: 185px;
+    .horizon-deck-wrapper {
       background: #16171a;
       border-top: 1px solid #22242a;
       display: flex;
+      flex-direction: column;
+    }
+
+    .horizon-deck-banner {
+      padding: 4px 16px;
+      font-size: 10px;
+      color: #949ba4;
+      background: #1a1c21;
+      border-bottom: 1px solid #22252b;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .horizon-cards-deck {
+      min-height: 155px;
+      max-height: 180px;
+      display: flex;
       gap: 12px;
-      padding: 10px 16px;
+      padding: 8px 16px;
       overflow-x: auto;
       overflow-y: hidden;
     }
 
     .horizon-card {
-      flex: 1 0 230px;
-      min-width: 230px;
-      max-width: 360px;
+      flex: 1 0 220px;
+      min-width: 220px;
+      max-width: 340px;
       background: var(--bg-card);
       border: 1px solid var(--bg-card-border);
       border-radius: 8px;
-      padding: 10px 12px;
+      padding: 9px 12px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      transition: border-color 0.15s, box-shadow 0.15s;
+      transition: border-color 0.15s;
     }
 
     .horizon-card:hover { border-color: #4b5563; }
@@ -422,7 +455,7 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 11.5px;
+      font-size: 11px;
       font-weight: 700;
       color: #9ca3af;
       border-bottom: 1px solid #282a30;
@@ -430,7 +463,7 @@
     }
 
     .card-tag {
-      font-size: 10px;
+      font-size: 9.5px;
       padding: 2px 6px;
       border-radius: 3px;
       font-weight: 700;
@@ -443,12 +476,12 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 12px;
-      margin-top: 4px;
+      font-size: 11.5px;
+      margin-top: 3px;
     }
 
     .val-med {
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 800;
       color: #ffffff;
       font-variant-numeric: tabular-nums;
@@ -459,65 +492,110 @@
 
     .prob-bar-container {
       width: 100%;
-      height: 6px;
+      height: 5px;
       background: #2a2d34;
       border-radius: 3px;
       overflow: hidden;
       display: flex;
-      margin: 6px 0;
+      margin: 5px 0;
     }
 
     .prob-bar-up { height: 100%; background: var(--accent-green); transition: width 0.3s; }
     .prob-bar-down { height: 100%; background: var(--accent-red); transition: width 0.3s; }
 
-    /* Tab 2: Tokenizer Inspector */
-    .token-view {
-      padding: 20px 30px;
+    /* Validation & Inspector Views */
+    .validation-view, .token-view {
+      padding: 18px 26px;
       overflow-y: auto;
-      gap: 16px;
+      gap: 14px;
       display: flex;
       flex-direction: column;
     }
 
-    .token-card {
+    .section-card {
       background: var(--bg-card);
       border: 1px solid var(--bg-card-border);
       border-radius: 8px;
       padding: 16px 20px;
     }
 
-    .token-table {
+    .wf-header-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .wf-switch-group {
+      display: flex;
+      gap: 6px;
+    }
+
+    .wf-btn {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 6px;
+      background: #282a30;
+      color: var(--text-muted);
+      border: 1px solid #374151;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .wf-btn:hover { color: #fff; border-color: #4b5563; }
+    .wf-btn.active {
+      background: var(--accent-blue);
+      color: #fff;
+      border-color: var(--accent-blue);
+    }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .kpi-card {
+      background: #17181c;
+      border: 1px solid #282b32;
+      border-radius: 6px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .kpi-title { font-size: 11px; font-weight: 600; color: #9ca3af; }
+    .kpi-value { font-size: 20px; font-weight: 800; color: #fff; font-variant-numeric: tabular-nums; }
+    .kpi-sub { font-size: 11px; color: #6b7280; }
+
+    .data-table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 12px;
+      margin-top: 10px;
       font-size: 12px;
     }
 
-    .token-table th {
+    .data-table th {
       text-align: left;
-      padding: 8px 10px;
+      padding: 7px 10px;
       background: #18191c;
       color: #9ca3af;
       border-bottom: 1px solid #2e3138;
       font-weight: 600;
     }
 
-    .token-table td {
+    .data-table td {
       padding: 6px 10px;
       border-bottom: 1px solid #22252a;
       font-variant-numeric: tabular-nums;
     }
 
-    .tok-badge {
-      display: inline-block;
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-family: monospace;
-      font-weight: 700;
-      font-size: 11px;
-    }
-    .tok-pre { background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4); }
-    .tok-post { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); }
+    .badge-win { color: var(--accent-green); font-weight: 700; }
+    .badge-loss { color: var(--accent-red); font-weight: 700; }
+    .badge-neutral { color: var(--text-muted); }
 
     /* Tooltip */
     #chartTooltip {
@@ -544,6 +622,7 @@
       <nav class="tabs-container">
         <div class="app-logo" style="margin-right: 6px; cursor: default;" title="Kronos Foundation Core">K</div>
         <div class="header-tab active" data-tab="tab-forecast">📊 Forecast Canvas</div>
+        <div class="header-tab" data-tab="tab-validation">🎯 Walk-Forward Validation</div>
         <div class="header-tab" data-tab="tab-tokenizer">🧬 Tokenizer Inspector</div>
         <div class="header-tab" data-tab="tab-about">ℹ️ Architecture</div>
       </nav>
@@ -553,41 +632,45 @@
       <div class="status-strip">
         <!-- Model Engine Selector -->
         <select class="selector-select" id="modelSelect" title="Pilih Engine AI">
-          <option value="mini" selected>⚡ Turbo Mode (Kronos-mini 4.1M)</option>
-          <option value="base">🧠 Deep Mode (Kronos-base 102M)</option>
+          <option value="mini" selected>⚡ Turbo (Kronos-mini 4.1M)</option>
+          <option value="base">🧠 Deep (Kronos-base 102M)</option>
         </select>
 
-        <div class="pill pill-blue" id="pillData">
+        <div class="pill pill-green" id="pillDataStatus" title="Status Integritas Data Dukascopy">
           <div class="pill-dot"></div>
-          <span id="dataStatusText">Dukascopy (H1)</span>
+          <span id="dataStatusText">DATA: VALID</span>
+        </div>
+
+        <div class="pill pill-blue" id="pillPredictionStatus" title="Status Konvergensi Distribusi Monte Carlo">
+          <div class="pill-dot"></div>
+          <span id="predictionStatusText">DIST: READY</span>
         </div>
 
         <select class="selector-select" id="timeframeSelect" title="Pilih Timeframe Candle">
-          <option value="M1">Timeframe: M1 (Scalping)</option>
-          <option value="M5">Timeframe: M5 (Fast Intraday)</option>
-          <option value="M15">Timeframe: M15 (Intraday)</option>
-          <option value="H1" selected>Timeframe: H1 (Standard)</option>
-          <option value="H4">Timeframe: H4 (Swing)</option>
+          <option value="M1">Timeframe: M1 (Scalping 1-Min)</option>
+          <option value="M5" selected>Timeframe: M5 (Intraday 5-Min)</option>
+          <option value="M15">Timeframe: M15 (Intraday 15-Min)</option>
+          <option value="H1">Timeframe: H1 (Hourly Swing)</option>
+          <option value="H4">Timeframe: H4 (4-Hour Swing)</option>
           <option value="D1">Timeframe: D1 (Daily Swing)</option>
         </select>
 
         <select class="selector-select" id="horizonSelect" title="Rentang Waktu Proyeksi">
-          <option value="4H">Forecast: 4 Jam (4H)</option>
-          <option value="12H">Forecast: 12 Jam (12H)</option>
-          <option value="1D" selected>Forecast: 1 Hari (1D)</option>
-          <option value="2D">Forecast: 2 Hari (2D)</option>
-          <option value="3D">Forecast: 3 Hari (3D)</option>
-          <option value="1W">Forecast: 1 Minggu (1W)</option>
-          <option value="2W">Forecast: 2 Minggu (2W)</option>
+          <!-- Dynamically populated per timeframe -->
         </select>
 
         <select class="selector-select" id="sampleCountSelect" title="Jumlah Jalur Monte Carlo">
-          <option value="5" selected>5 MC Paths (Instant)</option>
-          <option value="10">10 MC Paths</option>
-          <option value="20">20 MC Paths</option>
+          <option value="50">50 Paths (Fast Preview)</option>
+          <option value="100" selected>100 Paths (Standard)</option>
+          <option value="500">500 Paths (High Fidelity)</option>
+          <option value="1000">1,000 Paths (Production)</option>
+          <option value="5000">5,000 Paths (Ultra Precision)</option>
+          <option value="10000">10,000 Paths (Full Convergence)</option>
         </select>
 
-        <button class="btn-run" id="btnRunForecast">
+        <input type="number" class="seed-input" id="seedInput" placeholder="Seed (opt)" title="Random Seed untuk reproduksibilitas">
+
+        <button class="btn-run" id="btnRunForecast" aria-label="Run Monte Carlo Forecast">
           <span id="btnRunText">⚡ Run Forecast</span>
         </button>
       </div>
@@ -612,13 +695,17 @@
             <span class="tag-badge">SWISS ECN SPOT</span>
           </div>
           <div class="current-px" id="lblLivePrice">----.--</div>
-          <span style="font-size: 12px; color: var(--accent-green);" id="lblPriceDelta">--</span>
+          <span style="font-size: 11px; color: var(--accent-cyan);" id="lblMarketRegime">[RANGING / NORMAL VOL]</span>
         </div>
 
         <div class="meta-metrics">
+          <span>TF: <strong id="lblMetaTf">M5</strong></span>
+          <span>Horizon: <strong id="lblMetaHorizon">--</strong></span>
+          <span>Sampling: <strong id="lblMetaSampling">100 Paths</strong></span>
+          <span>Convergence: <strong id="lblMetaConv" style="color:var(--accent-green);">CONVERGED</strong></span>
           <span>ATR (14): <strong id="lblAtr">--</strong></span>
           <span>Last Sync: <strong id="lblLastSync">--</strong></span>
-          <span>Engine Status: <strong id="lblInferTime" style="color:var(--accent-green);">Ready</strong></span>
+          <span>Engine: <strong id="lblInferTime" style="color:var(--accent-green);">Ready</strong></span>
         </div>
       </div>
 
@@ -628,9 +715,9 @@
             <div class="legend-item"><div class="leg-box" style="background: #10b981;"></div> Bullish Real</div>
             <div class="legend-item"><div class="leg-box" style="background: #ef4444;"></div> Bearish Real</div>
             <div class="legend-item"><div class="leg-box" style="background: #38bdf8;"></div> Median P50</div>
-            <div class="legend-item"><div class="leg-box" style="background: rgba(56, 189, 248, 0.35);"></div> P25-P75 Core</div>
-            <div class="legend-item"><div class="leg-box" style="background: rgba(6, 182, 212, 0.15);"></div> P10-P90 Corridor</div>
-            <div class="legend-item"><div class="leg-box" style="background: rgba(16, 185, 129, 0.4); border: 1px dashed #10b981;"></div> Ghost Candle</div>
+            <div class="legend-item"><div class="leg-box" style="background: rgba(56, 189, 248, 0.35);"></div> P25-P75 Core (50%)</div>
+            <div class="legend-item"><div class="leg-box" style="background: rgba(6, 182, 212, 0.15);"></div> P10-P90 Corridor (80%)</div>
+            <div class="legend-item"><div class="leg-box" style="background: rgba(16, 185, 129, 0.4); border: 1px dashed #10b981;"></div> Ghost Candle (Envelope Visual Only)</div>
           </div>
         </div>
 
@@ -652,32 +739,137 @@
       </div>
 
       <!-- Multi-Horizon Deck Cards -->
-      <div class="horizon-cards-deck" id="horizonDeck">
-        <div class="horizon-card">
-          <div class="card-top">
-            <span>+4 BARS (+4H)</span>
-            <span class="card-tag tag-bull">AWAITING RUN</span>
+      <div class="horizon-deck-wrapper">
+        <div class="horizon-deck-banner">
+          <span><strong>MODEL SAMPLE DISTRIBUTION:</strong> Proporsi simulasi Monte Carlo di atas/bawah harga referensi. <em>Bukan probabilitas empiris pasar yang terbukti.</em></span>
+          <span id="lblGhostDisclaimer">Ghost Candles: Visualisasi Envelope Kuantil Agregat</span>
+        </div>
+        <div class="horizon-cards-deck" id="horizonDeck">
+          <div class="horizon-card">
+            <div class="card-top">
+              <span>AWAITING RUN</span>
+              <span class="card-tag tag-bull">READY</span>
+            </div>
+            <div class="card-metric-row">
+              <span style="color: var(--text-muted);">P50 Median</span>
+              <span class="val-med">--</span>
+            </div>
+            <div class="prob-bar-container"><div class="prob-bar-up" style="width: 50%;"></div><div class="prob-bar-down" style="width: 50%;"></div></div>
+            <div class="card-metric-row"><span class="val-up">Up: --%</span><span class="val-down">Down: --%</span></div>
           </div>
-          <div class="card-metric-row">
-            <span style="color: var(--text-muted);">Target Price</span>
-            <span class="val-med">--</span>
-          </div>
-          <div class="prob-bar-container"><div class="prob-bar-up" style="width: 50%;"></div><div class="prob-bar-down" style="width: 50%;"></div></div>
-          <div class="card-metric-row"><span class="val-up">Up: --%</span><span class="val-down">Down: --%</span></div>
         </div>
       </div>
     </div>
 
-    <!-- Tab 2: Tokenizer Inspector -->
+    <!-- Tab 2: Walk-Forward Validation -->
+    <div class="view-panel" id="tab-validation">
+      <div class="validation-view">
+        <div class="section-card">
+          <div class="wf-header-controls">
+            <div>
+              <h3 style="font-size: 16px; margin-bottom: 4px;">Walk-Forward Historical Out-of-Sample Validation</h3>
+              <p style="font-size: 12px; color: var(--text-muted);">
+                Pengujian ketat tanpa look-ahead bias: model memproyeksikan data masa lalu di titik T₀, dievaluasi setelah horizon berakhir, lalu dibandingkan dengan 4 benchmark baseline.
+              </p>
+            </div>
+            <div class="wf-switch-group">
+              <button class="wf-btn active" id="btnWfM5" onclick="switchWfTab('M5')">XAUUSD M5 (1H Horizon)</button>
+              <button class="wf-btn" id="btnWfM1" onclick="switchWfTab('M1')">XAUUSD M1 (15M Horizon)</button>
+              <button class="wf-btn" id="btnRunWf" style="background:#059669; color:#fff; border-color:#059669;" onclick="triggerWfRun()">▶ Run Backtest</button>
+            </div>
+          </div>
+
+          <!-- KPI Summary Grid -->
+          <div class="kpi-grid">
+            <div class="kpi-card">
+              <span class="kpi-title">Directional Accuracy (OOS)</span>
+              <span class="kpi-value" id="wfKpiDa">--%</span>
+              <span class="kpi-sub" id="wfKpiDaSub">vs Random Walk 50.0%</span>
+            </div>
+            <div class="kpi-card">
+              <span class="kpi-title">Mean Absolute Error (MAE)</span>
+              <span class="kpi-value" id="wfKpiMae">$--</span>
+              <span class="kpi-sub" id="wfKpiMaeSub">vs Last Close Persistence</span>
+            </div>
+            <div class="kpi-card">
+              <span class="kpi-title">Brier Score (Probabilistic)</span>
+              <span class="kpi-value" id="wfKpiBrier">--</span>
+              <span class="kpi-sub" id="wfKpiBrierSub">Reference: 0.25 (Coin Toss)</span>
+            </div>
+            <div class="kpi-card">
+              <span class="kpi-title">80% Interval Coverage (PICP)</span>
+              <span class="kpi-value" id="wfKpiPicp">--%</span>
+              <span class="kpi-sub" id="wfKpiPicpSub">Nominal Target: 80.0%</span>
+            </div>
+          </div>
+
+          <!-- Baseline Benchmark Comparison Table -->
+          <h4 style="font-size: 13px; margin: 16px 0 6px 0; color: #38bdf8;">1. Comparative Evaluation vs Statistical Baselines</h4>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Model / Baseline Method</th>
+                <th>MAE ($)</th>
+                <th>RMSE ($)</th>
+                <th>Directional Accuracy</th>
+                <th>Brier Score</th>
+                <th>Status vs Baseline</th>
+              </tr>
+            </thead>
+            <tbody id="wfBenchmarkTable">
+              <tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 12px;">Memuat data validasi walk-forward...</td></tr>
+            </tbody>
+          </table>
+
+          <!-- Probabilistic Calibration Bins Table -->
+          <h4 style="font-size: 13px; margin: 18px 0 6px 0; color: #10b981;">2. Probability Calibration Curve & Reliability Bins</h4>
+          <p style="font-size: 11.5px; color: var(--text-muted); margin-bottom: 6px;">
+            Membandingkan probabilitas prediksi model Kronos dengan frekuensi empiris kejadian pasar aktual pada rentang bucket yang sama.
+          </p>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Bucket Rentang Probabilitas</th>
+                <th>Jumlah Sampel Uji</th>
+                <th>Rata-rata Prediksi Model</th>
+                <th>Frekuensi Empiris Aktual</th>
+                <th>Calibration Gap (Error)</th>
+              </tr>
+            </thead>
+            <tbody id="wfCalibrationTable">
+              <tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 12px;">-</td></tr>
+            </tbody>
+          </table>
+
+          <!-- Market Regime Breakdown Table -->
+          <h4 style="font-size: 13px; margin: 18px 0 6px 0; color: #f59e0b;">3. Segmentasi Kinerja Berdasarkan Kondisi Pasar (Regime)</h4>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Kondisi Pasar (Regime)</th>
+                <th>Jumlah Jendela Evaluasi</th>
+                <th>Directional Accuracy (%)</th>
+                <th>Mean MAE ($)</th>
+              </tr>
+            </thead>
+            <tbody id="wfRegimeTable">
+              <tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 12px;">-</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab 3: Tokenizer Inspector -->
     <div class="view-panel" id="tab-tokenizer">
       <div class="token-view">
-        <div class="token-card">
+        <div class="section-card">
           <h3 style="font-size: 15px; margin-bottom: 6px;">Binary Spherical Quantization (BSQ) Token Matrix</h3>
           <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">
             Kronos memetakan K-line kontinu ke dalam representasi diskret menggunakan 2-tahap token hierarki: <strong>Token Pre</strong> (morfologi body & wicks) dan <strong>Token Post</strong> (momentum & relasi volume).
           </p>
           <div style="max-height: 520px; overflow-y: auto;">
-            <table class="token-table">
+            <table class="data-table">
               <thead>
                 <tr>
                   <th>#</th>
@@ -700,20 +892,20 @@
       </div>
     </div>
 
-    <!-- Tab 3: About Architecture -->
+    <!-- Tab 4: About Architecture -->
     <div class="view-panel" id="tab-about">
       <div class="token-view">
-        <div class="token-card">
-          <h3 style="font-size: 16px; margin-bottom: 10px;">Kronos Foundation Model Architecture</h3>
+        <div class="section-card">
+          <h3 style="font-size: 16px; margin-bottom: 10px;">Kronos Foundation Model Architecture & Integrity Framework</h3>
           <p style="font-size: 13px; line-height: 1.6; color: #d1d5db; margin-bottom: 14px;">
-            <strong>Kronos</strong> adalah *Decoder-Only Autoregressive Foundation Model* yang dikembangkan oleh peneliti dari Tsinghua University untuk memodelkan "bahasa" pasar keuangan global.
+            <strong>Kronos</strong> adalah *Decoder-Only Autoregressive Foundation Model* untuk memodelkan struktur pasar keuangan global secara probabilistik murni.
           </p>
           <ul style="font-size: 12.5px; line-height: 1.8; color: var(--text-muted); margin-left: 20px;">
-            <li><strong>Turbo Engine:</strong> Kronos-mini (4.1M parameter, latensi inferensi ~0.8 detik).</li>
-            <li><strong>Deep Engine:</strong> Kronos-base (102.3M parameter, analisis representasi makro).</li>
-            <li><strong>Pre-training Corpus:</strong> >12 Miliar bar K-line dari 45 bursa global.</li>
-            <li><strong>Data Engine:</strong> Dukascopy Bank Swiss ECN (Tick & Hourly feeds murni).</li>
-            <li><strong>Asynchronous Threading:</strong> Pemrosesan non-blocking di background thread, UI 100% mulus 60 FPS tanpa freeze.</li>
+            <li><strong>Strict Data Integrity:</strong> Menghapus seluruh fallback data sintetis. Jika Dukascopy Swiss ECN tidak tersedia dan cache kadaluarsa, status eksplisit <code>DATA UNAVAILABLE</code> ditampilkan.</li>
+            <li><strong>Exact Timeframes & Horizons:</strong> M1 (300 candles = 5 jam), M5 (288 candles = 24 jam / 1 hari). Tidak ada pemotongan horizon diam-diam.</li>
+            <li><strong>Sampling Convergence Diagnostics:</strong> Menguji kestabilan distribusi Monte Carlo (100 - 10.000 sampel) antar partisi sampel independen. Menandai status <code>CONVERGED</code>, <code>LOW CONFIDENCE</code>, atau <code>UNSTABLE DISTRIBUTION</code>.</li>
+            <li><strong>Pemisahan Probabilitas:</strong> Distribusi Monte Carlo model dibedakan secara tegas dari probabilitas empiris historis (hasil walk-forward).</li>
+            <li><strong>Zero Look-Ahead Validation:</strong> Validasi out-of-sample historis untuk XAUUSD M1 dan M5 dievaluasi secara terpisah terhadap baseline Last Close, Drift, Random Walk, dan Volatility Corridor.</li>
           </ul>
         </div>
       </div>
@@ -727,6 +919,7 @@
     let isRunning = false;
     let pollTimer = null;
     let t0 = 0;
+    let currentWfTf = 'M5';
 
     const canvas = document.getElementById('kronosCanvas');
     const ctx = canvas.getContext('2d');
@@ -747,6 +940,7 @@
         const target = document.getElementById(tab.dataset.tab);
         if (target) target.classList.add('active');
         if (tab.dataset.tab === 'tab-forecast') renderChart();
+        if (tab.dataset.tab === 'tab-validation') loadWalkForwardData(currentWfTf);
       });
     });
 
@@ -1117,22 +1311,22 @@
             <span class="card-tag ${isBull ? 'tag-bull' : 'tag-bear'}">${h.dominant}</span>
           </div>
           <div class="card-metric-row">
-            <span style="color: var(--text-muted);">Median Target</span>
+            <span style="color: var(--text-muted);">P50 Median</span>
             <span class="val-med">${h.median_price.toFixed(2)}</span>
           </div>
           <div class="card-metric-row" style="font-size: 11px;">
-            <span>80% Corridor:</span>
+            <span>80% Band:</span>
             <span>${h.range_low.toFixed(2)} - ${h.range_high.toFixed(2)}</span>
           </div>
           <div class="prob-bar-container">
-            <div class="prob-bar-up" style="width: ${h.p_up}%;"></div>
-            <div class="prob-bar-down" style="width: ${h.p_down}%;"></div>
+            <div class="prob-bar-up" style="width: ${h.model_p_up || h.p_up}%;"></div>
+            <div class="prob-bar-down" style="width: ${h.model_p_down || h.p_down}%;"></div>
           </div>
           <div class="card-metric-row">
-            <span class="val-up">Up: ${h.p_up}%</span>
-            <span class="val-down">Down: ${h.p_down}%</span>
+            <span class="val-up">Model Up: ${h.model_p_up || h.p_up}%</span>
+            <span class="val-down">Model Down: ${h.model_p_down || h.p_down}%</span>
           </div>
-          <div class="card-metric-row" style="font-size: 11px; margin-top:2px;">
+          <div class="card-metric-row" style="font-size: 10.5px; margin-top:2px;">
             <span>Delta: <strong style="color:${h.delta_points >= 0 ? 'var(--accent-green)' : 'var(--accent-red)'}">${h.delta_points >= 0 ? '+' : ''}${h.delta_points.toFixed(2)} pts</strong></span>
             <span style="color:var(--text-muted); font-size:10px;">${h.target_time.slice(5)}</span>
           </div>
@@ -1156,12 +1350,154 @@
           <td>${tok.low.toFixed(2)}</td>
           <td>${tok.close.toFixed(2)}</td>
           <td>${tok.volume.toFixed(1)}</td>
-          <td><span class="tok-badge tok-pre">${tok.token_pre}</span></td>
-          <td><span class="tok-badge tok-post">${tok.token_post}</span></td>
+          <td><span class="tok-badge" style="background:rgba(59,130,246,0.2);color:#60a5fa;padding:2px 5px;border-radius:3px;font-family:monospace;">${tok.token_pre}</span></td>
+          <td><span class="tok-badge" style="background:rgba(16,185,129,0.2);color:#34d399;padding:2px 5px;border-radius:3px;font-family:monospace;">${tok.token_post}</span></td>
         `;
         tbody.appendChild(tr);
       });
     }
+
+    // --- Walk-Forward Validation Tab Logic ---
+    function switchWfTab(tf) {
+      currentWfTf = tf.toUpperCase();
+      document.getElementById('btnWfM5').classList.toggle('active', currentWfTf === 'M5');
+      document.getElementById('btnWfM1').classList.toggle('active', currentWfTf === 'M1');
+      loadWalkForwardData(currentWfTf);
+    }
+
+    async function loadWalkForwardData(tf) {
+      try {
+        if (window.pywebview && window.pywebview.api) {
+          const raw = await window.pywebview.api.get_walk_forward_results(tf);
+          const res = JSON.parse(raw);
+          if (res.success && res.data) {
+            renderWalkForwardData(res.data);
+          } else {
+            document.getElementById('wfBenchmarkTable').innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:16px;">Belum ada hasil validasi untuk ${tf}. Klik 'Run Backtest' untuk menjalankan.</td></tr>`;
+            document.getElementById('wfCalibrationTable').innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:16px;">-</td></tr>`;
+            document.getElementById('wfRegimeTable').innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding:16px;">-</td></tr>`;
+          }
+        }
+      } catch (err) {
+        console.warn("loadWalkForwardData err:", err);
+      }
+    }
+
+    function renderWalkForwardData(data) {
+      const km = data.kronos_metrics;
+      const bc = data.baseline_comparisons;
+      const bv = data.benchmark_verdict;
+
+      // KPIs
+      document.getElementById('wfKpiDa').textContent = `${km.directional.directional_accuracy}%`;
+      document.getElementById('wfKpiDaSub').textContent = `Out-of-sample (${data.windows_count} windows, horizon: ${data.horizon_bars} bars)`;
+
+      document.getElementById('wfKpiMae').textContent = `$${km.price_error.mae.toFixed(2)}`;
+      document.getElementById('wfKpiMaeSub').textContent = `Last Close: $${bc.last_close_persistence.mae.toFixed(2)} | Drift: $${bc.historical_drift.mae.toFixed(2)}`;
+
+      document.getElementById('wfKpiBrier').textContent = km.probabilistic.brier_score.toFixed(4);
+      document.getElementById('wfKpiBrierSub').textContent = `Skill vs Coin Toss: ${km.probabilistic.brier_score_skill_vs_coin_toss_pct}%`;
+
+      document.getElementById('wfKpiPicp').textContent = `${km.intervals.picp_80_coverage_pct}%`;
+      document.getElementById('wfKpiPicpSub').textContent = `Target: 80% (PINAW: ${km.intervals.pinaw_80_width_pct}%)`;
+
+      // 1. Benchmark Table
+      const tb = document.getElementById('wfBenchmarkTable');
+      tb.innerHTML = `
+        <tr style="background: rgba(56, 189, 248, 0.08);">
+          <td><strong>Kronos Mini (MC Autoregressive)</strong></td>
+          <td><strong>$${km.price_error.mae.toFixed(3)}</strong></td>
+          <td><strong>$${km.price_error.rmse.toFixed(3)}</strong></td>
+          <td><strong>${km.directional.directional_accuracy}%</strong></td>
+          <td><strong>${km.probabilistic.brier_score.toFixed(4)}</strong></td>
+          <td><span class="badge-neutral">Model Subjek Uji</span></td>
+        </tr>
+        <tr>
+          <td>Last Close Persistence (Zero Drift)</td>
+          <td>$${bc.last_close_persistence.mae.toFixed(3)}</td>
+          <td>$${bc.last_close_persistence.rmse.toFixed(3)}</td>
+          <td>${bc.last_close_persistence.directional_accuracy}%</td>
+          <td>N/A</td>
+          <td><span class="${bv.beats_last_close_mae ? 'badge-win' : 'badge-loss'}">${bv.beats_last_close_mae ? 'Kronos Unggul MAE' : 'Persistence Unggul MAE'}</span></td>
+        </tr>
+        <tr>
+          <td>Historical Drift (Linear Trend)</td>
+          <td>$${bc.historical_drift.mae.toFixed(3)}</td>
+          <td>$${bc.historical_drift.rmse.toFixed(3)}</td>
+          <td>${bc.historical_drift.directional_accuracy}%</td>
+          <td>N/A</td>
+          <td><span class="${bv.beats_drift_mae ? 'badge-win' : 'badge-loss'}">${bv.beats_drift_mae ? 'Kronos Unggul MAE' : 'Drift Unggul MAE'}</span></td>
+        </tr>
+        <tr>
+          <td>Random Walk (Coin Toss p=0.50)</td>
+          <td>N/A</td>
+          <td>N/A</td>
+          <td>50.0% (Teori)</td>
+          <td>${bc.random_walk.brier_score.toFixed(4)}</td>
+          <td><span class="${bv.beats_random_walk_brier ? 'badge-win' : 'badge-loss'}">${bv.beats_random_walk_brier ? 'Kronos Unggul Skill' : 'Random Walk Baseline'}</span></td>
+        </tr>
+      `;
+
+      // 2. Calibration Bins Table
+      const cb = document.getElementById('wfCalibrationTable');
+      if (km.probabilistic.calibration_bins && km.probabilistic.calibration_bins.length > 0) {
+        cb.innerHTML = '';
+        km.probabilistic.calibration_bins.forEach(bin => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${bin.bin_range}</td>
+            <td>${bin.count}</td>
+            <td>${bin.mean_predicted_prob}%</td>
+            <td><strong>${bin.observed_frequency}%</strong></td>
+            <td>${bin.calibration_gap}%</td>
+          `;
+          cb.appendChild(tr);
+        });
+      }
+
+      // 3. Regime Breakdown
+      const rb = document.getElementById('wfRegimeTable');
+      if (data.market_regime_breakdown) {
+        rb.innerHTML = '';
+        Object.keys(data.market_regime_breakdown).forEach(reg => {
+          const item = data.market_regime_breakdown[reg];
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td><strong>${reg}</strong></td>
+            <td>${item.count}</td>
+            <td>${item.directional_accuracy}%</td>
+            <td>$${item.mean_mae.toFixed(3)}</td>
+          `;
+          rb.appendChild(tr);
+        });
+      }
+    }
+
+    async function triggerWfRun() {
+      const btn = document.getElementById('btnRunWf');
+      btn.textContent = '⏳ Running...';
+      btn.disabled = true;
+      try {
+        if (window.pywebview && window.pywebview.api) {
+          await window.pywebview.api.run_walk_forward(currentWfTf, 5, 50, 42);
+        }
+      } catch (err) {
+        alert("WF Run error: " + err);
+        btn.textContent = '▶ Run Backtest';
+        btn.disabled = false;
+      }
+    }
+
+    window.onWalkForwardCompleted = function(res) {
+      const btn = document.getElementById('btnRunWf');
+      btn.textContent = '▶ Run Backtest';
+      btn.disabled = false;
+      if (res && res.success && res.data) {
+        renderWalkForwardData(res.data);
+      } else {
+        alert("Walk-forward failed: " + (res ? res.error : "Unknown"));
+      }
+    };
 
     // --- Asynchronous Non-blocking Execution ---
     function handleForecastResult(res) {
@@ -1189,6 +1525,36 @@
         document.getElementById('lblAtr').textContent = res.data.current_atr.toFixed(2);
         if (res.data.history.length > 0) {
           document.getElementById('lblLastSync').textContent = res.data.history[res.data.history.length - 1].timestamp;
+        }
+
+        // Sampling & Diagnostics
+        const meta = res.data.metadata || {};
+        const diag = res.data.sampling_diagnostics || {};
+        const regime = res.data.market_regime || {};
+
+        document.getElementById('lblMetaTf').textContent = res.data.timeframe || meta.timeframe || 'M5';
+        document.getElementById('lblMetaHorizon').textContent = meta.actual_horizon_duration_str || `${res.data.pred_len} Bars`;
+        document.getElementById('lblMetaSampling').textContent = `${diag.sample_count || res.data.sample_count} Paths`;
+
+        const convStatus = diag.convergence_status || 'CONVERGED';
+        const lblConv = document.getElementById('lblMetaConv');
+        lblConv.textContent = convStatus;
+        if (convStatus === 'CONVERGED') {
+          lblConv.style.color = 'var(--accent-green)';
+          document.getElementById('predictionStatusText').textContent = 'DIST: CONVERGED';
+          document.getElementById('pillPredictionStatus').className = 'pill pill-green';
+        } else if (convStatus === 'LOW CONFIDENCE') {
+          lblConv.style.color = 'var(--accent-yellow)';
+          document.getElementById('predictionStatusText').textContent = 'DIST: LOW CONFIDENCE';
+          document.getElementById('pillPredictionStatus').className = 'pill pill-yellow';
+        } else {
+          lblConv.style.color = 'var(--accent-red)';
+          document.getElementById('predictionStatusText').textContent = 'DIST: UNSTABLE';
+          document.getElementById('pillPredictionStatus').className = 'pill pill-red';
+        }
+
+        if (regime.trend_regime) {
+          document.getElementById('lblMarketRegime').textContent = `[${regime.trend_regime} / ${regime.volatility_regime || 'NORMAL'}]`;
         }
 
         updateHorizonCards(res.data.horizons);
@@ -1223,6 +1589,7 @@
       const tf = document.getElementById('timeframeSelect').value;
       const horizonVal = document.getElementById('horizonSelect').value;
       const samples = parseInt(document.getElementById('sampleCountSelect').value);
+      const seedVal = document.getElementById('seedInput').value.trim();
 
       // Save user choices to localStorage
       try {
@@ -1230,11 +1597,12 @@
         localStorage.setItem('kronos_timeframe', tf);
         localStorage.setItem('kronos_horizon', horizonVal);
         localStorage.setItem('kronos_samples', samples);
+        if (seedVal) localStorage.setItem('kronos_seed', seedVal);
       } catch (e) {}
 
       try {
         if (window.pywebview && window.pywebview.api) {
-          const raw = await window.pywebview.api.start_forecast(modelType, tf, horizonVal, samples);
+          const raw = await window.pywebview.api.start_forecast(modelType, tf, horizonVal, samples, seedVal ? parseInt(seedVal) : null);
           const startRes = JSON.parse(raw);
           if (!startRes.success) {
             handleForecastResult(startRes);
@@ -1265,64 +1633,64 @@
     function updateHorizonLabels(preferredVal) {
       const tf = document.getElementById('timeframeSelect').value;
       const hSelect = document.getElementById('horizonSelect');
-      const curVal = preferredVal || hSelect.value || '1D';
+      const curVal = preferredVal || hSelect.value || '1H';
       
       const horizonsConfig = {
         'M1': [
-          {v: '15M', l: 'Forecast: 15 Menit (15M)'},
-          {v: '30M', l: 'Forecast: 30 Menit (30M)'},
-          {v: '1H', l: 'Forecast: 1 Jam (1H)'},
-          {v: '4H', l: 'Forecast: 4 Jam (4H)'},
-          {v: '1D', l: 'Forecast: 1 Hari (1D)'}
+          {v: '15M', l: '15 Menit (15 candles)'},
+          {v: '30M', l: '30 Menit (30 candles)'},
+          {v: '1H', l: '1 Jam (60 candles)'},
+          {v: '2H', l: '2 Jam (120 candles)'},
+          {v: '3H', l: '3 Jam (180 candles)'},
+          {v: '5H', l: '5 Jam (300 candles)'}
         ],
         'M5': [
-          {v: '1H', l: 'Forecast: 1 Jam (1H)'},
-          {v: '4H', l: 'Forecast: 4 Jam (4H)'},
-          {v: '12H', l: 'Forecast: 12 Jam (12H)'},
-          {v: '1D', l: 'Forecast: 1 Hari (1D)'},
-          {v: '2D', l: 'Forecast: 2 Hari (2D)'}
+          {v: '1H', l: '1 Jam (12 candles)'},
+          {v: '2H', l: '2 Jam (24 candles)'},
+          {v: '4H', l: '4 Jam (48 candles)'},
+          {v: '8H', l: '8 Jam (96 candles)'},
+          {v: '12H', l: '12 Jam (144 candles)'},
+          {v: '1D', l: '24 Jam / 1 Hari (288 candles)'}
         ],
         'M15': [
-          {v: '4H', l: 'Forecast: 4 Jam (4H)'},
-          {v: '12H', l: 'Forecast: 12 Jam (12H)'},
-          {v: '1D', l: 'Forecast: 1 Hari (1D)'},
-          {v: '2D', l: 'Forecast: 2 Hari (2D)'},
-          {v: '3D', l: 'Forecast: 3 Hari (3D)'},
-          {v: '1W', l: 'Forecast: 1 Minggu (1W)'}
+          {v: '4H', l: '4 Jam (16 candles)'},
+          {v: '12H', l: '12 Jam (48 candles)'},
+          {v: '1D', l: '1 Hari (96 candles)'},
+          {v: '2D', l: '2 Hari (192 candles)'},
+          {v: '3D', l: '3 Hari (288 candles)'}
         ],
         'H1': [
-          {v: '4H', l: 'Forecast: 4 Jam (4H)'},
-          {v: '12H', l: 'Forecast: 12 Jam (12H)'},
-          {v: '1D', l: 'Forecast: 1 Hari (1D)'},
-          {v: '2D', l: 'Forecast: 2 Hari (2D)'},
-          {v: '3D', l: 'Forecast: 3 Hari (3D)'},
-          {v: '1W', l: 'Forecast: 1 Minggu (1W / 5D)'},
-          {v: '2W', l: 'Forecast: 2 Minggu (2W / 10D)'}
+          {v: '4H', l: '4 Jam (4 candles)'},
+          {v: '12H', l: '12 Jam (12 candles)'},
+          {v: '1D', l: '1 Hari (24 candles)'},
+          {v: '2D', l: '2 Hari (48 candles)'},
+          {v: '3D', l: '3 Hari (72 candles)'},
+          {v: '1W', l: '1 Minggu / 5D (120 candles)'},
+          {v: '2W', l: '2 Minggu / 10D (240 candles)'}
         ],
         'H4': [
-          {v: '12H', l: 'Forecast: 12 Jam (12H)'},
-          {v: '1D', l: 'Forecast: 1 Hari (1D)'},
-          {v: '2D', l: 'Forecast: 2 Hari (2D)'},
-          {v: '3D', l: 'Forecast: 3 Hari (3D)'},
-          {v: '1W', l: 'Forecast: 1 Minggu (1W / 5D)'},
-          {v: '2W', l: 'Forecast: 2 Minggu (2W / 10D)'}
+          {v: '12H', l: '12 Jam (3 candles)'},
+          {v: '1D', l: '1 Hari (6 candles)'},
+          {v: '2D', l: '2 Hari (12 candles)'},
+          {v: '3D', l: '3 Hari (18 candles)'},
+          {v: '1W', l: '1 Minggu (30 candles)'}
         ],
         'D1': [
-          {v: '1D', l: 'Forecast: 1 Hari (1D)'},
-          {v: '2D', l: 'Forecast: 2 Hari (2D)'},
-          {v: '3D', l: 'Forecast: 3 Hari (3D)'},
-          {v: '1W', l: 'Forecast: 1 Minggu (1W / 5D)'},
-          {v: '2W', l: 'Forecast: 2 Minggu (2W / 10D)'}
+          {v: '1D', l: '1 Hari (1 candle)'},
+          {v: '2D', l: '2 Hari (2 candles)'},
+          {v: '3D', l: '3 Hari (3 candles)'},
+          {v: '1W', l: '1 Minggu (5 candles)'},
+          {v: '2W', l: '2 Minggu (10 candles)'}
         ]
       };
 
-      const list = horizonsConfig[tf] || horizonsConfig['H1'];
+      const list = horizonsConfig[tf] || horizonsConfig['M5'];
       hSelect.innerHTML = '';
       let matched = false;
       list.forEach(item => {
         const opt = document.createElement('option');
         opt.value = item.v;
-        opt.textContent = item.l;
+        opt.textContent = `Forecast: ${item.l}`;
         if (item.v === curVal) {
           opt.selected = true;
           matched = true;
@@ -1330,10 +1698,9 @@
         hSelect.appendChild(opt);
       });
       if (!matched && list.length > 0) {
-        const fallback = list.find(x => x.v === '1D') || list[0];
+        const fallback = list[0];
         hSelect.value = fallback.v;
       }
-      document.getElementById('dataStatusText').textContent = `Dukascopy (${tf})`;
     }
 
     document.getElementById('modelSelect').addEventListener('change', (e) => {
@@ -1400,6 +1767,11 @@
           document.getElementById('sampleCountSelect').value = savedSamples;
         }
 
+        const savedSeed = localStorage.getItem('kronos_seed');
+        if (savedSeed && document.getElementById('seedInput')) {
+          document.getElementById('seedInput').value = savedSeed;
+        }
+
         const savedMode = localStorage.getItem('kronos_view_mode');
         if (savedMode && ['hybrid', 'fan', 'ghost'].includes(savedMode)) {
           setViewMode(savedMode);
@@ -1416,8 +1788,10 @@
           document.getElementById('lblLivePrice').textContent = status.last_price.toFixed(2);
           document.getElementById('lblLastSync').textContent = status.last_sync;
         }
-        if (status.cached_bars > 0) {
-          document.getElementById('dataStatusText').textContent = `Dukascopy (${status.cached_bars} bars)`;
+        if (status.data_status) {
+          const pData = document.getElementById('pillDataStatus');
+          document.getElementById('dataStatusText').textContent = `DATA: ${status.data_status}`;
+          pData.className = status.data_status === 'VALID' ? 'pill pill-green' : (status.data_status === 'STALE' ? 'pill pill-yellow' : 'pill pill-red');
         }
       } catch (e) {
         console.warn("Init status check warning:", e);
@@ -1434,6 +1808,7 @@
           if (sess.model_type) document.getElementById('modelSelect').value = sess.model_type;
           updateHorizonLabels(sess.horizon_label);
           if (sess.sample_count) document.getElementById('sampleCountSelect').value = sess.sample_count;
+          if (sess.seed) document.getElementById('seedInput').value = sess.seed;
 
           handleForecastResult({
             success: true,

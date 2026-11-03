@@ -22,10 +22,23 @@ def main():
     parser.add_argument("--model", type=str, default="mini", choices=["mini", "base"], help="Model engine: mini (4.1M, ultra-fast) or base (102.3M)")
     parser.add_argument("--timeframe", type=str, default="H1", choices=["M1", "M5", "M15", "H1", "H4", "D1"], help="Timeframe: M1, M5, M15, H1, H4, D1 (default: H1)")
     parser.add_argument("--pred-len", type=int, default=12, help="Forecast horizon bars (default: 12)")
-    parser.add_argument("--samples", type=int, default=5, help="Number of Monte Carlo paths (default: 5)")
+    parser.add_argument("--samples", type=int, default=100, help="Number of Monte Carlo paths (default: 100)")
+    parser.add_argument("--seed", type=int, default=None, help="Optional integer random seed for reproducibility")
+    parser.add_argument("--validate", action="store_true", help="Run historical walk-forward validation backtest")
+    parser.add_argument("--windows", type=int, default=5, help="Number of walk-forward windows (default: 5)")
     args = parser.parse_args()
 
     service = KronosService()
+
+    if args.validate:
+        print(f"\n=======================================================")
+        print(f"  KRONOS HISTORICAL WALK-FORWARD VALIDATION (XAUUSD)  ")
+        print(f"=======================================================")
+        print(f"Timeframe: {args.timeframe} | Windows: {args.windows} | Samples: {args.samples} | Seed: {args.seed or 42}")
+        from scripts.run_walk_forward_evaluation import run_evaluation_for_timeframe
+        horizon = 15 if args.timeframe.upper() == "M1" else 12
+        run_evaluation_for_timeframe(args.timeframe.upper(), horizon=horizon, num_windows=args.windows, sample_count=args.samples, seed=args.seed or 42)
+        return
 
     if args.headless:
         print(f"\n=======================================================")
@@ -38,7 +51,8 @@ def main():
             model_type=args.model,
             timeframe=args.timeframe,
             pred_len=args.pred_len,
-            sample_count=args.samples
+            sample_count=args.samples,
+            seed=args.seed
         )
 
         if not res.get("success"):

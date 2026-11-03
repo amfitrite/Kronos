@@ -69,9 +69,11 @@ class ChromeWindowAPI:
         model_type: str = "mini",
         timeframe: str = "H1",
         pred_len: object = "1D",
-        sample_count: int = 5
+        sample_count: int = 100,
+        seed: object = None
     ) -> str:
         """Starts asynchronous prediction on background worker thread."""
+        actual_seed = int(seed) if seed is not None and str(seed).strip().isdigit() else None
         bars = self._service.calculate_horizon_bars(timeframe, pred_len)
 
         def _on_completed(result):
@@ -87,6 +89,7 @@ class ChromeWindowAPI:
             timeframe=timeframe,
             pred_len=bars,
             sample_count=int(sample_count),
+            seed=actual_seed,
             horizon_label=str(pred_len),
             on_completed=_on_completed
         )
@@ -96,6 +99,50 @@ class ChromeWindowAPI:
         """Polls current progress of background forecast computation."""
         progress = self._service.get_forecast_progress()
         return json.dumps(progress)
+
+    def get_walk_forward_results(self, timeframe: str = "M5") -> str:
+        """Retrieves stored walk-forward validation backtest results."""
+        try:
+            res = self._service.get_walk_forward_results(timeframe=timeframe)
+            return json.dumps(res)
+        except Exception as e:
+            logger.error(f"get_walk_forward_results failed: {e}")
+            return json.dumps({"success": False, "error": str(e)})
+
+    def run_walk_forward(
+        self,
+        timeframe: str = "M5",
+        num_windows: int = 10,
+        sample_count: int = 50,
+        seed: int = 42
+    ) -> str:
+        """Runs walk-forward backtest asynchronously."""
+        def _wf_worker():
+            try:
+                res = self._service.run_walk_forward_validation(
+                    timeframe=timeframe,
+                    num_windows=int(num_windows),
+                    sample_count=int(sample_count),
+                    seed=int(seed)
+                )
+                if self._window:
+                    try:
+                        payload = json.dumps({"success": True, "data": res})
+                        self._window.evaluate_js(f"window.onWalkForwardCompleted({payload});")
+                    except Exception as err:
+                        logger.debug(f"WF evaluate_js err: {err}")
+            except Exception as e:
+                logger.error(f"Walk forward run failed: {e}", exc_info=True)
+                if self._window:
+                    try:
+                        payload = json.dumps({"success": False, "error": str(e)})
+                        self._window.evaluate_js(f"window.onWalkForwardCompleted({payload});")
+                    except Exception:
+                        pass
+
+        wf_thread = threading.Thread(target=_wf_worker, daemon=True)
+        wf_thread.start()
+        return json.dumps({"success": True, "started": True, "timeframe": timeframe})
 
     def get_token_diagnostics(self) -> str:
         try:

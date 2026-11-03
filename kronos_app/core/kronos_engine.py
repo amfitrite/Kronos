@@ -14,6 +14,8 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 from model.kronos import Kronos, KronosTokenizer, calc_time_stamps, sample_from_logits
+from kronos_app.data.market_calendar import generate_market_timestamps
+from kronos_app.evaluation.market_regime import detect_market_regime
 
 logger = logging.getLogger("Kronos.Engine")
 
@@ -159,6 +161,8 @@ class KronosMonteCarloEngine:
         df: pd.DataFrame,
         pred_len: int = 24,
         sample_count: int = 10,
+        timeframe: str = "H1",
+        seed: Optional[int] = None,
         temperature: float = 1.0,
         top_p: float = 0.9,
         top_k: int = 0,
@@ -170,11 +174,17 @@ class KronosMonteCarloEngine:
             df: Historical candlestick DataFrame.
             pred_len: Number of forward bars to forecast.
             sample_count: Number of probabilistic paths to generate.
+            timeframe: Candle timeframe ('M1', 'M5', 'H1', etc.).
+            seed: Optional integer seed for exact reproducibility.
             temperature: Sampling temperature (default: 1.0).
             top_p: Nucleus filtering threshold (default: 0.9).
             progress_callback: Optional callback(current_step, total_steps, fraction).
         """
         self.load_model()
+
+        if seed is not None:
+            torch.manual_seed(seed)
+            np.random.seed(seed)
 
         if len(df) < 30:
             raise ValueError(f"Need at least 30 historical candles for context, got {len(df)}")
@@ -188,19 +198,12 @@ class KronosMonteCarloEngine:
         if self.amt_col not in context_df.columns:
             context_df[self.amt_col] = context_df[self.vol_col] * context_df[self.price_cols].mean(axis=1)
 
-        # Generate future timestamps
-        last_ts = context_df["timestamp"].iloc[-1]
-        step_delta = context_df["timestamp"].iloc[-1] - context_df["timestamp"].iloc[-2]
-        if step_delta.total_seconds() <= 0:
-            step_delta = datetime.timedelta(hours=1)
+        # Detect market regime
+        market_regime = detect_market_regime(context_df)
 
-        future_timestamps = []
-        curr_ts = last_ts
-        for _ in range(pred_len):
-            curr_ts = curr_ts + step_delta
-            if curr_ts.weekday() == 5: # Saturday
-                curr_ts += datetime.timedelta(days=1)
-            future_timestamps.append(curr_ts)
+        # Generate future timestamps using exact market calendar
+        last_ts = pd.to_datetime(context_df["timestamp"].iloc[-1]).to_pydatetime()
+        future_timestamps = generate_market_timestamps(last_ts, pred_len, timeframe)
 
         x_time_df = calc_time_stamps(context_df["timestamp"])
         y_time_df = calc_time_stamps(pd.Series(future_timestamps))
@@ -358,7 +361,74 @@ class KronosMonteCarloEngine:
             horizons_steps = [q, q * 2, q * 3, pred_len]
         horizons_steps = sorted(list(set(horizons_steps)))
 
-        total_seconds = max(60, int(step_delta.total_seconds()))
+        tf_seconds_map = {
+            "M1": 60, "1M": 60,
+            "M5": 300, "5M": 300,
+            "M15": 900, "15M": 900,
+            "M30": 1800, "30M": 1800,
+            "H1": 3600, "1H": 3600,
+            "H4": 14400, "4H": 14400,
+            "D1": 86400, "1D": 86400
+        }
+        total_seconds = tf_seconds_map.get(timeframe.upper(), 3600)
+
+        # Calculate current ATR for volatility reference
+        recent_tr = []
+        for i in range(1, min(15, len(context_df))):
+            h = context_df["high"].iloc[-i]
+            l = context_df["low"].iloc[-i]
+            pc = context_df["close"].iloc[-i-1]
+            recent_tr.append(max(h - l, abs(h - pc), abs(l - pc)))
+        current_atr = float(np.mean(recent_tr)) if recent_tr else 8.5
+
+        # Monte Carlo Convergence Testing
+        n_half = max(1, sample_count // 2)
+        final_idx = pred_len - 1
+        p50_half = float(np.percentile(close_paths[:n_half, final_idx], 50))
+        p50_full = float(np.percentile(close_paths[:, final_idx], 50))
+        p50_stability_error = abs(p50_half - p50_full)
+
+        p10_half = float(np.percentile(close_paths[:n_half, final_idx], 10))
+        p10_full = float(np.percentile(close_paths[:, final_idx], 10))
+        p10_stability_error = abs(p10_half - p10_full)
+
+        p90_half = float(np.percentile(close_paths[:n_half, final_idx], 90))
+        p90_full = float(np.percentile(close_paths[:, final_idx], 90))
+        p90_stability_error = abs(p90_half - p90_full)
+
+        p_up_half = float(np.mean(close_paths[:n_half, final_idx] > last_real_close)) * 100.0
+        p_up_full = float(np.mean(close_paths[:, final_idx] > last_real_close)) * 100.0
+        dir_stability_error = abs(p_up_half - p_up_full)
+
+        std_final = float(np.std(close_paths[:, final_idx]))
+        sem_p50 = (1.253 * std_final) / np.sqrt(max(1, sample_count))
+
+        if sample_count < 50:
+            convergence_status = "LOW CONFIDENCE"
+            status_reason = f"Small sample size ({sample_count} < 50 paths). Increase to 100-1000 paths for convergence."
+        elif dir_stability_error <= 4.0 and p50_stability_error <= (0.15 * current_atr):
+            convergence_status = "CONVERGED"
+            status_reason = "Distribution stable across sample partitions (error < 4% dir, < 0.15 ATR)."
+        elif dir_stability_error <= 8.0 and p50_stability_error <= (0.35 * current_atr):
+            convergence_status = "LOW CONFIDENCE"
+            status_reason = "Distribution moderately stable. Recommend 1,000+ samples for tighter quantiles."
+        else:
+            convergence_status = "UNSTABLE DISTRIBUTION"
+            status_reason = "High variance detected between sample halves. Distribution not yet converged."
+
+        sampling_diagnostics = {
+            "sample_count": sample_count,
+            "seed": seed,
+            "convergence_status": convergence_status,
+            "status_reason": status_reason,
+            "p50_stability_error": round(p50_stability_error, 3),
+            "p10_stability_error": round(p10_stability_error, 3),
+            "p90_stability_error": round(p90_stability_error, 3),
+            "dir_prob_stability_error_pct": round(dir_stability_error, 2),
+            "standard_error_p50": round(sem_p50, 3),
+            "model_prob_disclaimer": "Model distribution reflects stochastic Monte Carlo sample paths under current model weights; this is NOT empirical market odds or guaranteed future probability."
+        }
+
         horizon_metrics = []
         for h_step in horizons_steps:
             if h_step <= pred_len:
@@ -383,6 +453,8 @@ class KronosMonteCarloEngine:
                     "horizon": f"+{h_step} Bars (+{dur_str})",
                     "hours": h_step,
                     "target_time": future_timestamps[idx].strftime("%Y-%m-%d %H:%M"),
+                    "model_p_up": round(p_up, 1),
+                    "model_p_down": round(p_down, 1),
                     "p_up": round(p_up, 1),
                     "p_down": round(p_down, 1),
                     "median_price": round(h_p50, 3),
@@ -404,14 +476,6 @@ class KronosMonteCarloEngine:
                 "volume": round(float(row["volume"]), 2)
             })
 
-        recent_tr = []
-        for i in range(1, min(15, len(context_df))):
-            h = context_df["high"].iloc[-i]
-            l = context_df["low"].iloc[-i]
-            pc = context_df["close"].iloc[-i-1]
-            recent_tr.append(max(h - l, abs(h - pc), abs(l - pc)))
-        current_atr = float(np.mean(recent_tr)) if recent_tr else 8.5
-
         return {
             "success": True,
             "model_type": self.model_type,
@@ -420,6 +484,9 @@ class KronosMonteCarloEngine:
             "current_atr": round(current_atr, 3),
             "sample_count": sample_count,
             "pred_len": pred_len,
+            "timeframe": timeframe.upper(),
+            "sampling_diagnostics": sampling_diagnostics,
+            "market_regime": market_regime,
             "history": chart_hist,
             "future_timestamps": [ts.strftime("%Y-%m-%d %H:%M") for ts in future_timestamps],
             "fan_chart": {
@@ -431,5 +498,9 @@ class KronosMonteCarloEngine:
                 "raw_paths": raw_paths_sub
             },
             "ghost_candles": ghost_candles,
+            "ghost_candle_info": {
+                "nature": "QUANTILE_AGGREGATION_ENVELOPE",
+                "disclaimer": "Ghost candles represent quantile envelopes (P50 close, P85 high, P15 low) for visual reference only; they are not an actual physical trade path."
+            },
             "horizons": horizon_metrics
         }

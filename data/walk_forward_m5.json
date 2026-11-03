@@ -1,0 +1,358 @@
+{
+  "success": true,
+  "timeframe": "M5",
+  "evaluated_at": "2026-11-03 07:04:39 UTC",
+  "windows_count": 3,
+  "horizon_bars": 12,
+  "model_tested": "mini",
+  "kronos_metrics": {
+    "directional": {
+      "directional_accuracy": 33.33,
+      "total_evaluations": 3,
+      "correct_predictions": 1,
+      "bullish_hit_rate": 0.0,
+      "bearish_hit_rate": 33.33,
+      "confusion_matrix": {
+        "true_positives": 0,
+        "false_positives": 2,
+        "true_negatives": 1,
+        "false_negatives": 0
+      }
+    },
+    "price_error": {
+      "mae": 5.375,
+      "rmse": 5.855,
+      "median_ae": 5.368,
+      "mape_pct": 0.137
+    },
+    "probabilistic": {
+      "brier_score": 0.2994,
+      "brier_score_skill_vs_coin_toss_pct": -19.76,
+      "log_loss": 0.8062,
+      "expected_calibration_error_pct": 52.2,
+      "calibration_bins": [
+        {
+          "bin_range": "0-20%",
+          "count": 0,
+          "mean_predicted_prob": 10.0,
+          "observed_frequency": 0.0,
+          "calibration_gap": 0.0
+        },
+        {
+          "bin_range": "20-40%",
+          "count": 1,
+          "mean_predicted_prob": 33.3,
+          "observed_frequency": 0.0,
+          "calibration_gap": 33.3
+        },
+        {
+          "bin_range": "40-60%",
+          "count": 1,
+          "mean_predicted_prob": 50.0,
+          "observed_frequency": 0.0,
+          "calibration_gap": 50.0
+        },
+        {
+          "bin_range": "60-80%",
+          "count": 1,
+          "mean_predicted_prob": 73.3,
+          "observed_frequency": 0.0,
+          "calibration_gap": 73.3
+        },
+        {
+          "bin_range": "80-100%",
+          "count": 0,
+          "mean_predicted_prob": 90.0,
+          "observed_frequency": 0.0,
+          "calibration_gap": 0.0
+        }
+      ]
+    },
+    "intervals": {
+      "picp_80_coverage_pct": 58.33,
+      "picp_80_nominal_target": 80.0,
+      "picp_80_error": -21.67,
+      "pinaw_80_width_pct": 52.74,
+      "picp_50_coverage_pct": 47.22,
+      "picp_50_nominal_target": 50.0,
+      "picp_50_error": -2.78,
+      "pinaw_50_width_pct": 39.75
+    }
+  },
+  "baseline_comparisons": {
+    "last_close_persistence": {
+      "mae": 4.786,
+      "rmse": 4.87,
+      "directional_accuracy": 100.0
+    },
+    "random_walk": {
+      "brier_score": 0.25,
+      "log_loss": 0.6931
+    },
+    "historical_drift": {
+      "mae": 6.668,
+      "rmse": 8.217,
+      "directional_accuracy": 66.67
+    },
+    "volatility_corridor_atr": {
+      "picp_80_coverage_pct": 100.0
+    }
+  },
+  "benchmark_verdict": {
+    "beats_last_close_mae": false,
+    "beats_drift_mae": true,
+    "beats_drift_directional_accuracy": false,
+    "beats_random_walk_brier": false,
+    "summary": "Kronos MAE: 5.375 vs Last Close: 4.786 | DA: 33.33% vs Drift: 66.67%"
+  },
+  "market_regime_breakdown": {
+    "TRENDING_BEARISH": {
+      "count": 3,
+      "correct_dir": 1,
+      "directional_accuracy": 33.33,
+      "mean_mae": 5.375
+    }
+  },
+  "window_records": [
+    {
+      "window_idx": 1,
+      "t0_timestamp": "2026-11-03 03:50:00+00:00",
+      "target_timestamp": "2026-11-03 04:50:00+00:00",
+      "t0_price": 3928.872,
+      "actual_price": 3923.19,
+      "actual_return": -5.682,
+      "actual_direction": "BEARISH",
+      "market_regime": "TRENDING_BEARISH",
+      "volatility_regime": "NORMAL_VOLATILITY",
+      "kronos_pred_median": 3931.412,
+      "kronos_pred_return": 2.54,
+      "kronos_pred_direction": "BULLISH",
+      "kronos_p_up": 0.733,
+      "kronos_p10": 3926.632,
+      "kronos_p90": 3936.583,
+      "kronos_p25": 3928.868,
+      "kronos_p75": 3933.322,
+      "actual_series": [
+        3926.135,
+        3925.245,
+        3929.415,
+        3927.455,
+        3925.085,
+        3925.976,
+        3927.524,
+        3925.118,
+        3923.345,
+        3922.495,
+        3923.592,
+        3923.19
+      ],
+      "p50_series": [
+        3927.872,
+        3928.25,
+        3929.301,
+        3929.863,
+        3929.81,
+        3930.666,
+        3930.343,
+        3930.716,
+        3931.681,
+        3931.697,
+        3931.441,
+        3931.412
+      ],
+      "p10_series": [
+        3926.159,
+        3926.419,
+        3926.085,
+        3927.167,
+        3926.092,
+        3927.084,
+        3926.171,
+        3926.358,
+        3926.644,
+        3927.657,
+        3925.44,
+        3926.632
+      ],
+      "p90_series": [
+        3930.273,
+        3931.472,
+        3932.863,
+        3932.53,
+        3931.957,
+        3932.793,
+        3933.038,
+        3934.45,
+        3934.375,
+        3934.0,
+        3935.118,
+        3936.583
+      ],
+      "baseline_last_close_price": 3928.872,
+      "baseline_drift_price": 3936.478,
+      "baseline_drift_return": 7.606,
+      "baseline_vol_p10": 3910.773,
+      "baseline_vol_p90": 3946.971
+    },
+    {
+      "window_idx": 2,
+      "t0_timestamp": "2026-11-03 04:50:00+00:00",
+      "target_timestamp": "2026-11-03 05:50:00+00:00",
+      "t0_price": 3923.19,
+      "actual_price": 3919.635,
+      "actual_return": -3.555,
+      "actual_direction": "BEARISH",
+      "market_regime": "TRENDING_BEARISH",
+      "volatility_regime": "NORMAL_VOLATILITY",
+      "kronos_pred_median": 3922.169,
+      "kronos_pred_return": -1.021,
+      "kronos_pred_direction": "BEARISH",
+      "kronos_p_up": 0.333,
+      "kronos_p10": 3918.655,
+      "kronos_p90": 3925.856,
+      "kronos_p25": 3920.061,
+      "kronos_p75": 3924.233,
+      "actual_series": [
+        3923.395,
+        3924.018,
+        3926.625,
+        3927.685,
+        3927.215,
+        3926.176,
+        3922.765,
+        3919.165,
+        3921.242,
+        3926.505,
+        3921.635,
+        3919.635
+      ],
+      "p50_series": [
+        3921.581,
+        3922.563,
+        3923.114,
+        3923.608,
+        3923.113,
+        3924.135,
+        3923.314,
+        3923.137,
+        3923.197,
+        3923.136,
+        3922.106,
+        3922.169
+      ],
+      "p10_series": [
+        3919.163,
+        3920.054,
+        3920.197,
+        3920.7,
+        3920.19,
+        3920.083,
+        3918.652,
+        3919.259,
+        3918.816,
+        3918.917,
+        3918.155,
+        3918.655
+      ],
+      "p90_series": [
+        3924.059,
+        3924.397,
+        3924.818,
+        3925.591,
+        3925.236,
+        3925.726,
+        3925.082,
+        3926.845,
+        3927.399,
+        3926.585,
+        3925.574,
+        3925.856
+      ],
+      "baseline_last_close_price": 3923.19,
+      "baseline_drift_price": 3917.583,
+      "baseline_drift_return": -5.607,
+      "baseline_vol_p10": 3908.716,
+      "baseline_vol_p90": 3937.664
+    },
+    {
+      "window_idx": 3,
+      "t0_timestamp": "2026-11-03 05:50:00+00:00",
+      "target_timestamp": "2026-11-03 06:50:00+00:00",
+      "t0_price": 3919.635,
+      "actual_price": 3914.514,
+      "actual_return": -5.121,
+      "actual_direction": "BEARISH",
+      "market_regime": "TRENDING_BEARISH",
+      "volatility_regime": "NORMAL_VOLATILITY",
+      "kronos_pred_median": 3919.882,
+      "kronos_pred_return": 0.247,
+      "kronos_pred_direction": "BULLISH",
+      "kronos_p_up": 0.5,
+      "kronos_p10": 3914.654,
+      "kronos_p90": 3927.306,
+      "kronos_p25": 3915.989,
+      "kronos_p75": 3925.132,
+      "actual_series": [
+        3918.335,
+        3921.474,
+        3922.645,
+        3920.655,
+        3917.945,
+        3920.135,
+        3920.394,
+        3925.014,
+        3924.725,
+        3918.465,
+        3916.044,
+        3914.514
+      ],
+      "p50_series": [
+        3919.962,
+        3919.881,
+        3921.302,
+        3921.491,
+        3921.583,
+        3921.956,
+        3919.845,
+        3921.948,
+        3920.979,
+        3920.82,
+        3920.091,
+        3919.882
+      ],
+      "p10_series": [
+        3918.082,
+        3916.547,
+        3916.45,
+        3915.505,
+        3915.24,
+        3915.183,
+        3914.398,
+        3914.965,
+        3914.8,
+        3913.895,
+        3915.38,
+        3914.654
+      ],
+      "p90_series": [
+        3922.047,
+        3923.722,
+        3924.475,
+        3925.189,
+        3926.51,
+        3926.519,
+        3927.677,
+        3926.585,
+        3927.969,
+        3927.204,
+        3926.952,
+        3927.306
+      ],
+      "baseline_last_close_price": 3919.635,
+      "baseline_drift_price": 3909.85,
+      "baseline_drift_return": -9.785,
+      "baseline_vol_p10": 3901.502,
+      "baseline_vol_p90": 3937.768
+    }
+  ]
+}
