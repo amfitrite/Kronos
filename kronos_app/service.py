@@ -47,7 +47,12 @@ class KronosService:
         - M5: 1h (12c), 2h (24c), 4h (48c), 8h (96c), 12h (144c), 1d/24h (288c = 24 Hours / 1 Day)
         - H1: 4h (4c), 12h (12c), 1d (24c), 2d (48c), 3d (72c), 1w (120c = 5 Trading Days), 2w (240c = 10 Trading Days)
         """
-        h_str = str(horizon_input).strip().upper()
+        if horizon_input is None:
+            h_str = "1H"
+        else:
+            h_str = str(horizon_input).strip().upper()
+        if not h_str:
+            h_str = "1H"
         tf = timeframe.upper()
 
         if h_str.isdigit():
@@ -230,6 +235,11 @@ class KronosService:
         self._last_result = None
         self._last_error = None
 
+        try:
+            safe_samples = max(5, int(sample_count))
+        except (ValueError, TypeError):
+            safe_samples = 100
+
         bars, dur_str = self.get_horizon_details(timeframe, horizon_label or pred_len)
         actual_pred_len = bars
 
@@ -237,7 +247,7 @@ class KronosService:
             try:
                 logger.info(
                     f"Worker started: model={model_type}, tf={timeframe}, "
-                    f"pred_len={actual_pred_len} ({dur_str}), samples={sample_count}"
+                    f"pred_len={actual_pred_len} ({dur_str}), samples={safe_samples}"
                 )
                 self.engine.set_model_type(model_type)
                 self.current_timeframe = timeframe.upper()
@@ -258,7 +268,7 @@ class KronosService:
                 forecast_res = self.engine.predict_monte_carlo(
                     df=df,
                     pred_len=actual_pred_len,
-                    sample_count=sample_count,
+                    sample_count=safe_samples,
                     timeframe=self.current_timeframe,
                     seed=seed,
                     temperature=1.0,
@@ -387,11 +397,15 @@ class KronosService:
             raise ValueError("No data available.")
 
         bars, dur_str = self.get_horizon_details(timeframe, pred_len)
+        try:
+            safe_samples = max(5, int(sample_count))
+        except (ValueError, TypeError):
+            safe_samples = 100
 
         res = self.engine.predict_monte_carlo(
             df=df,
             pred_len=bars,
-            sample_count=sample_count,
+            sample_count=safe_samples,
             timeframe=self.current_timeframe,
             seed=seed,
             temperature=1.0,

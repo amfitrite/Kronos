@@ -69,11 +69,26 @@ class ChromeWindowAPI:
         model_type: str = "mini",
         timeframe: str = "H1",
         pred_len: object = "1D",
-        sample_count: int = 100,
+        sample_count: object = 100,
         seed: object = None
     ) -> str:
-        """Starts asynchronous prediction on background worker thread."""
-        actual_seed = int(seed) if seed is not None and str(seed).strip().isdigit() else None
+        """Starts asynchronous prediction on background worker thread with robust type guarding."""
+        actual_seed = None
+        if seed is not None and str(seed).strip() != "":
+            try:
+                actual_seed = int(seed)
+            except (ValueError, TypeError):
+                actual_seed = None
+
+        actual_samples = 100
+        if sample_count is not None and str(sample_count).strip() != "":
+            try:
+                parsed_samples = int(sample_count)
+                if parsed_samples > 0:
+                    actual_samples = parsed_samples
+            except (ValueError, TypeError):
+                actual_samples = 100
+
         bars = self._service.calculate_horizon_bars(timeframe, pred_len)
 
         def _on_completed(result):
@@ -88,7 +103,7 @@ class ChromeWindowAPI:
             model_type=model_type,
             timeframe=timeframe,
             pred_len=bars,
-            sample_count=int(sample_count),
+            sample_count=actual_samples,
             seed=actual_seed,
             horizon_label=str(pred_len),
             on_completed=_on_completed
@@ -112,18 +127,31 @@ class ChromeWindowAPI:
     def run_walk_forward(
         self,
         timeframe: str = "M5",
-        num_windows: int = 10,
-        sample_count: int = 50,
-        seed: int = 42
+        num_windows: object = 10,
+        sample_count: object = 50,
+        seed: object = 42
     ) -> str:
-        """Runs walk-forward backtest asynchronously."""
+        """Runs walk-forward backtest asynchronously with robust parameter parsing."""
+        try:
+            n_win = max(2, int(num_windows)) if num_windows is not None and str(num_windows).strip().isdigit() else 5
+        except (ValueError, TypeError):
+            n_win = 5
+        try:
+            s_cnt = max(10, int(sample_count)) if sample_count is not None and str(sample_count).strip().isdigit() else 50
+        except (ValueError, TypeError):
+            s_cnt = 50
+        try:
+            s_val = int(seed) if seed is not None and str(seed).strip().isdigit() else 42
+        except (ValueError, TypeError):
+            s_val = 42
+
         def _wf_worker():
             try:
                 res = self._service.run_walk_forward_validation(
                     timeframe=timeframe,
-                    num_windows=int(num_windows),
-                    sample_count=int(sample_count),
-                    seed=int(seed)
+                    num_windows=n_win,
+                    sample_count=s_cnt,
+                    seed=s_val
                 )
                 if self._window:
                     try:

@@ -131,7 +131,7 @@
     .status-strip {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
     }
 
     .pill {
@@ -171,18 +171,6 @@
       cursor: pointer;
     }
 
-    .seed-input {
-      background: #23252a;
-      border: 1px solid #374151;
-      color: #e5e7eb;
-      font-size: 11px;
-      font-weight: 600;
-      padding: 4px 6px;
-      border-radius: 6px;
-      outline: none;
-      width: 72px;
-    }
-
     .btn-run {
       background: var(--accent-green);
       color: #000;
@@ -206,6 +194,26 @@
       background: #2563eb;
       color: #fff;
       cursor: wait;
+    }
+
+    .gear-btn {
+      width: 32px;
+      height: 30px;
+      border-radius: 6px;
+      background: #282a30;
+      border: 1px solid #374151;
+      color: #cbd5e1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .gear-btn:hover {
+      background: #374151;
+      color: #fff;
+      border-color: #4b5563;
     }
 
     /* Window Controls */
@@ -612,6 +620,136 @@
       box-shadow: 0 4px 14px rgba(0,0,0,0.5);
       line-height: 1.4;
     }
+
+    /* --- Global Settings Modal --- */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.65);
+      backdrop-filter: blur(6px);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-dialog {
+      width: 540px;
+      max-width: 92vw;
+      background: #1e2024;
+      border: 1px solid #374151;
+      border-radius: 10px;
+      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.6);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      animation: modalFadeIn 0.15s ease-out;
+    }
+
+    @keyframes modalFadeIn {
+      from { opacity: 0; transform: scale(0.96); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .modal-header {
+      padding: 14px 18px;
+      background: #17181c;
+      border-bottom: 1px solid #2a2d34;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .modal-close-btn {
+      background: transparent;
+      border: none;
+      color: #9ca3af;
+      font-size: 16px;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 4px;
+      transition: all 0.15s;
+    }
+
+    .modal-close-btn:hover { background: #374151; color: #fff; }
+
+    .modal-body {
+      padding: 18px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      max-height: 70vh;
+      overflow-y: auto;
+    }
+
+    .setting-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .setting-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #e5e7eb;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .setting-desc {
+      font-size: 11px;
+      font-weight: 400;
+      color: #949ba4;
+    }
+
+    .setting-input {
+      background: #141517;
+      border: 1px solid #374151;
+      color: #f3f4f6;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 8px 10px;
+      border-radius: 6px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .setting-input:focus { border-color: var(--accent-blue); }
+
+    .setting-action-btn {
+      background: #2a2d34;
+      border: 1px solid #374151;
+      color: #cbd5e1;
+      font-size: 11.5px;
+      font-weight: 600;
+      padding: 0 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+
+    .setting-action-btn:hover { background: #374151; color: #fff; }
+
+    .setting-info-box {
+      background: #16181d;
+      border: 1px solid #282a32;
+      border-radius: 6px;
+      padding: 10px 12px;
+    }
+
+    .modal-footer {
+      padding: 12px 18px;
+      background: #17181c;
+      border-top: 1px solid #2a2d34;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
   </style>
 </head>
 <body>
@@ -630,48 +768,34 @@
 
     <div class="header-right">
       <div class="status-strip">
-        <!-- Model Engine Selector -->
-        <select class="selector-select" id="modelSelect" title="Pilih Engine AI">
-          <option value="mini" selected>⚡ Turbo (Kronos-mini 4.1M)</option>
-          <option value="base">🧠 Deep (Kronos-base 102M)</option>
-        </select>
-
         <div class="pill pill-green" id="pillDataStatus" title="Status Integritas Data Dukascopy">
           <div class="pill-dot"></div>
           <span id="dataStatusText">DATA: VALID</span>
         </div>
 
-        <div class="pill pill-blue" id="pillPredictionStatus" title="Status Konvergensi Distribusi Monte Carlo">
-          <div class="pill-dot"></div>
-          <span id="predictionStatusText">DIST: READY</span>
-        </div>
-
         <select class="selector-select" id="timeframeSelect" title="Pilih Timeframe Candle">
-          <option value="M1">Timeframe: M1 (Scalping 1-Min)</option>
-          <option value="M5" selected>Timeframe: M5 (Intraday 5-Min)</option>
-          <option value="M15">Timeframe: M15 (Intraday 15-Min)</option>
-          <option value="H1">Timeframe: H1 (Hourly Swing)</option>
-          <option value="H4">Timeframe: H4 (4-Hour Swing)</option>
-          <option value="D1">Timeframe: D1 (Daily Swing)</option>
+          <option value="M1">TF: M1 (Scalping 1-Min)</option>
+          <option value="M5" selected>TF: M5 (Intraday 5-Min)</option>
+          <option value="M15">TF: M15 (Intraday 15-Min)</option>
+          <option value="H1">TF: H1 (Hourly Swing)</option>
+          <option value="H4">TF: H4 (4-Hour Swing)</option>
+          <option value="D1">TF: D1 (Daily Swing)</option>
         </select>
 
         <select class="selector-select" id="horizonSelect" title="Rentang Waktu Proyeksi">
           <!-- Dynamically populated per timeframe -->
         </select>
 
-        <select class="selector-select" id="sampleCountSelect" title="Jumlah Jalur Monte Carlo">
-          <option value="50">50 Paths (Fast Preview)</option>
-          <option value="100" selected>100 Paths (Standard)</option>
-          <option value="500">500 Paths (High Fidelity)</option>
-          <option value="1000">1,000 Paths (Production)</option>
-          <option value="5000">5,000 Paths (Ultra Precision)</option>
-          <option value="10000">10,000 Paths (Full Convergence)</option>
-        </select>
-
-        <input type="number" class="seed-input" id="seedInput" placeholder="Seed (opt)" title="Random Seed untuk reproduksibilitas">
-
         <button class="btn-run" id="btnRunForecast" aria-label="Run Monte Carlo Forecast">
           <span id="btnRunText">⚡ Run Forecast</span>
+        </button>
+
+        <!-- Global Settings Gear Button -->
+        <button class="gear-btn" id="btnOpenSettings" title="Global Engine Settings (Model, Samples, Seed)" aria-label="Open Settings">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
         </button>
       </div>
 
@@ -702,7 +826,7 @@
           <span>TF: <strong id="lblMetaTf">M5</strong></span>
           <span>Horizon: <strong id="lblMetaHorizon">--</strong></span>
           <span>Sampling: <strong id="lblMetaSampling">100 Paths</strong></span>
-          <span>Convergence: <strong id="lblMetaConv" style="color:var(--accent-green);">CONVERGED</strong></span>
+          <span>Status: <strong id="lblMetaConv" style="color:var(--accent-green);">CONVERGED</strong></span>
           <span>ATR (14): <strong id="lblAtr">--</strong></span>
           <span>Last Sync: <strong id="lblLastSync">--</strong></span>
           <span>Engine: <strong id="lblInferTime" style="color:var(--accent-green);">Ready</strong></span>
@@ -903,7 +1027,7 @@
           <ul style="font-size: 12.5px; line-height: 1.8; color: var(--text-muted); margin-left: 20px;">
             <li><strong>Strict Data Integrity:</strong> Menghapus seluruh fallback data sintetis. Jika Dukascopy Swiss ECN tidak tersedia dan cache kadaluarsa, status eksplisit <code>DATA UNAVAILABLE</code> ditampilkan.</li>
             <li><strong>Exact Timeframes & Horizons:</strong> M1 (300 candles = 5 jam), M5 (288 candles = 24 jam / 1 hari). Tidak ada pemotongan horizon diam-diam.</li>
-            <li><strong>Sampling Convergence Diagnostics:</strong> Menguji kestabilan distribusi Monte Carlo (100 - 10.000 sampel) antar partisi sampel independen. Menandai status <code>CONVERGED</code>, <code>LOW CONFIDENCE</code>, atau <code>UNSTABLE DISTRIBUTION</code>.</li>
+            <li><strong>Sampling Convergence Diagnostics:</strong> Menguji kestabilan distribusi Monte Carlo (10 - 10.000 sampel) antar partisi sampel independen. Menandai status <code>CONVERGED</code>, <code>LOW CONFIDENCE</code>, atau <code>UNSTABLE DISTRIBUTION</code>.</li>
             <li><strong>Pemisahan Probabilitas:</strong> Distribusi Monte Carlo model dibedakan secara tegas dari probabilitas empiris historis (hasil walk-forward).</li>
             <li><strong>Zero Look-Ahead Validation:</strong> Validasi out-of-sample historis untuk XAUUSD M1 dan M5 dievaluasi secara terpisah terhadap baseline Last Close, Drift, Random Walk, dan Volatility Corridor.</li>
           </ul>
@@ -912,6 +1036,79 @@
     </div>
 
   </main>
+
+  <!-- Global Settings Modal Dialog -->
+  <div class="modal-overlay" id="settingsModal" style="display:none;">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="font-size:16px;">⚙️</span>
+          <span style="font-weight:700; font-size:14px; color:#fff;">Global Engine Settings</span>
+        </div>
+        <button class="modal-close-btn" id="btnCloseSettings" aria-label="Close Settings">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- 1. AI Model Engine -->
+        <div class="setting-group">
+          <label class="setting-label">
+            <span>🧠 Model Engine Architecture</span>
+            <span class="setting-desc">Pilih ukuran arsitektur Transformer autoregresif Kronos</span>
+          </label>
+          <select class="setting-input" id="modelSelect">
+            <option value="mini" selected>⚡ Turbo Engine (Kronos-mini 4.1M parameter, low latency ~0.8s)</option>
+            <option value="base">🧠 Deep Engine (Kronos-base 102.3M parameter, macro representations)</option>
+          </select>
+        </div>
+
+        <!-- 2. Monte Carlo Sample Count -->
+        <div class="setting-group">
+          <label class="setting-label">
+            <span>🎲 Monte Carlo Sample Count (Path Simulations)</span>
+            <span class="setting-desc">Jumlah jalur pergerakan harga probabilistik yang disimulasikan</span>
+          </label>
+          <select class="setting-input" id="sampleCountSelect">
+            <option value="10">10 Paths (Fast Debug)</option>
+            <option value="20">20 Paths (Quick Glance)</option>
+            <option value="30">30 Paths</option>
+            <option value="50">50 Paths (Fast Preview)</option>
+            <option value="100" selected>100 Paths (Standard Production)</option>
+            <option value="500">500 Paths (High Fidelity Convergence)</option>
+            <option value="1000">1,000 Paths (Rigorous Sampling)</option>
+            <option value="5000">5,000 Paths (Ultra Precision)</option>
+            <option value="10000">10,000 Paths (Full Mathematical Convergence)</option>
+          </select>
+        </div>
+
+        <!-- 3. Reproducibility & Random Seed -->
+        <div class="setting-group">
+          <label class="setting-label">
+            <span>🔑 Deterministic Random Seed (Reproducibility)</span>
+            <span class="setting-desc">Kunci angka acak untuk mereplikasi distribusi kuantil secara persis (kosongkan untuk acak)</span>
+          </label>
+          <div style="display:flex; gap:8px;">
+            <input type="number" class="setting-input" id="seedInput" placeholder="Contoh: 42 (atau kosongkan)" style="flex:1;">
+            <button class="setting-action-btn" id="btnClearSeed" type="button">Reset Acak</button>
+          </div>
+        </div>
+
+        <!-- 4. Market Session Diagnostics -->
+        <div class="setting-info-box">
+          <div style="font-weight:700; color:#e5e7eb; margin-bottom:4px; font-size:12px;">🌐 Dukascopy Swiss ECN Market Schedule</div>
+          <div style="font-size:11px; color:#9ca3af; line-height:1.5;">
+            Jadwal XAUUSD: Buka Minggu 22:00 UTC s/d Jumat 21:00 UTC. Maintenance rollover setiap Senin-Kamis 21:00-22:00 UTC. Seluruh fallback sintetis dihapus dari jalur produksi.
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <span style="font-size:11px; color:var(--text-muted);" id="lblSettingsStatus">Semua pengaturan tersimpan otomatis.</span>
+        <button class="btn-run" id="btnSaveSettings" style="min-width:110px; padding:6px 18px;">
+          <span>✓ Simpan & Tutup</span>
+        </button>
+      </div>
+    </div>
+  </div>
 
   <script>
     let currentForecastData = null;
@@ -930,6 +1127,92 @@
     let isDragging = false;
     let dragStartX = 0;
     let hoverIndex = -1;
+
+    // --- Global Settings Modal Handlers ---
+    const settingsModal = document.getElementById('settingsModal');
+    const btnOpenSettings = document.getElementById('btnOpenSettings');
+    const btnCloseSettings = document.getElementById('btnCloseSettings');
+    const btnSaveSettings = document.getElementById('btnSaveSettings');
+    const btnClearSeed = document.getElementById('btnClearSeed');
+
+    function openSettings() {
+      settingsModal.style.display = 'flex';
+    }
+
+    function closeSettings() {
+      settingsModal.style.display = 'none';
+    }
+
+    btnOpenSettings.addEventListener('click', openSettings);
+    btnCloseSettings.addEventListener('click', closeSettings);
+    btnSaveSettings.addEventListener('click', () => {
+      saveSettingsPreferences();
+      closeSettings();
+    });
+
+    settingsModal.addEventListener('click', (e) => {
+      if (e.target === settingsModal) closeSettings();
+    });
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && settingsModal.style.display === 'flex') {
+        closeSettings();
+      }
+    });
+
+    btnClearSeed.addEventListener('click', () => {
+      document.getElementById('seedInput').value = '';
+      try { localStorage.removeItem('kronos_seed'); } catch(e) {}
+    });
+
+    function saveSettingsPreferences() {
+      const modelType = document.getElementById('modelSelect')?.value || 'mini';
+      const sampleSelect = document.getElementById('sampleCountSelect');
+      let samples = parseInt(sampleSelect ? sampleSelect.value : 100);
+      if (!samples || isNaN(samples) || samples <= 0) samples = 100;
+
+      const seedVal = document.getElementById('seedInput')?.value.trim();
+
+      try {
+        localStorage.setItem('kronos_model', modelType);
+        localStorage.setItem('kronos_samples', samples);
+        if (seedVal) {
+          localStorage.setItem('kronos_seed', seedVal);
+        } else {
+          localStorage.removeItem('kronos_seed');
+        }
+      } catch(e) {}
+
+      document.getElementById('lblMetaSampling').textContent = `${samples} Paths (${modelType})`;
+    }
+
+    // Helper to safely select option or dynamically append if custom
+    function safelySetSelectValue(selectId, targetVal, fallbackVal = '100') {
+      const elem = document.getElementById(selectId);
+      if (!elem) return;
+      if (targetVal === null || targetVal === undefined) {
+        elem.value = fallbackVal;
+        return;
+      }
+      elem.value = String(targetVal);
+      if (elem.value !== String(targetVal)) {
+        let found = false;
+        for (let opt of elem.options) {
+          if (opt.value == targetVal) {
+            elem.value = String(targetVal);
+            found = true;
+            break;
+          }
+        }
+        if (!found) {
+          const newOpt = document.createElement('option');
+          newOpt.value = String(targetVal);
+          newOpt.textContent = `${targetVal} Paths (Custom)`;
+          elem.appendChild(newOpt);
+          elem.value = String(targetVal);
+        }
+      }
+    }
 
     // Tab Switching
     document.querySelectorAll('.header-tab').forEach(tab => {
@@ -1541,16 +1824,10 @@
         lblConv.textContent = convStatus;
         if (convStatus === 'CONVERGED') {
           lblConv.style.color = 'var(--accent-green)';
-          document.getElementById('predictionStatusText').textContent = 'DIST: CONVERGED';
-          document.getElementById('pillPredictionStatus').className = 'pill pill-green';
         } else if (convStatus === 'LOW CONFIDENCE') {
           lblConv.style.color = 'var(--accent-yellow)';
-          document.getElementById('predictionStatusText').textContent = 'DIST: LOW CONFIDENCE';
-          document.getElementById('pillPredictionStatus').className = 'pill pill-yellow';
         } else {
           lblConv.style.color = 'var(--accent-red)';
-          document.getElementById('predictionStatusText').textContent = 'DIST: UNSTABLE';
-          document.getElementById('pillPredictionStatus').className = 'pill pill-red';
         }
 
         if (regime.trend_regime) {
@@ -1585,11 +1862,18 @@
       document.getElementById('lblInferTime').textContent = 'Computing in background...';
       document.getElementById('lblInferTime').style.color = "var(--accent-blue)";
 
-      const modelType = document.getElementById('modelSelect').value;
-      const tf = document.getElementById('timeframeSelect').value;
-      const horizonVal = document.getElementById('horizonSelect').value;
-      const samples = parseInt(document.getElementById('sampleCountSelect').value);
-      const seedVal = document.getElementById('seedInput').value.trim();
+      const modelType = document.getElementById('modelSelect')?.value || 'mini';
+      const tf = document.getElementById('timeframeSelect')?.value || 'M5';
+      const horizonVal = document.getElementById('horizonSelect')?.value || '1H';
+      
+      let samples = parseInt(document.getElementById('sampleCountSelect')?.value);
+      if (!samples || isNaN(samples) || samples <= 0) {
+        samples = 100;
+        safelySetSelectValue('sampleCountSelect', 100);
+      }
+
+      const seedStr = document.getElementById('seedInput')?.value ? document.getElementById('seedInput').value.trim() : '';
+      const actualSeed = (seedStr !== '' && !isNaN(parseInt(seedStr))) ? parseInt(seedStr) : null;
 
       // Save user choices to localStorage
       try {
@@ -1597,12 +1881,16 @@
         localStorage.setItem('kronos_timeframe', tf);
         localStorage.setItem('kronos_horizon', horizonVal);
         localStorage.setItem('kronos_samples', samples);
-        if (seedVal) localStorage.setItem('kronos_seed', seedVal);
+        if (actualSeed !== null) {
+          localStorage.setItem('kronos_seed', actualSeed);
+        } else {
+          localStorage.removeItem('kronos_seed');
+        }
       } catch (e) {}
 
       try {
         if (window.pywebview && window.pywebview.api) {
-          const raw = await window.pywebview.api.start_forecast(modelType, tf, horizonVal, samples, seedVal ? parseInt(seedVal) : null);
+          const raw = await window.pywebview.api.start_forecast(modelType, tf, horizonVal, samples, actualSeed);
           const startRes = JSON.parse(raw);
           if (!startRes.success) {
             handleForecastResult(startRes);
@@ -1703,22 +1991,14 @@
       }
     }
 
-    document.getElementById('modelSelect').addEventListener('change', (e) => {
-      try { localStorage.setItem('kronos_model', e.target.value); } catch(err){}
-    });
-
-    document.getElementById('sampleCountSelect').addEventListener('change', (e) => {
-      try { localStorage.setItem('kronos_samples', e.target.value); } catch(err){}
-    });
-
-    document.getElementById('horizonSelect').addEventListener('change', (e) => {
-      try { localStorage.setItem('kronos_horizon', e.target.value); } catch(err){}
-    });
-
     document.getElementById('timeframeSelect').addEventListener('change', () => {
       try { localStorage.setItem('kronos_timeframe', document.getElementById('timeframeSelect').value); } catch(err){}
       updateHorizonLabels();
       runForecast();
+    });
+
+    document.getElementById('horizonSelect').addEventListener('change', (e) => {
+      try { localStorage.setItem('kronos_horizon', e.target.value); } catch(err){}
     });
 
     document.getElementById('btnRunForecast').addEventListener('click', runForecast);
@@ -1763,8 +2043,8 @@
         updateHorizonLabels(savedHorizon);
 
         const savedSamples = localStorage.getItem('kronos_samples');
-        if (savedSamples && document.getElementById('sampleCountSelect')) {
-          document.getElementById('sampleCountSelect').value = savedSamples;
+        if (savedSamples) {
+          safelySetSelectValue('sampleCountSelect', savedSamples, '100');
         }
 
         const savedSeed = localStorage.getItem('kronos_seed');
@@ -1805,10 +2085,10 @@
         if (sessionRes && sessionRes.has_session && sessionRes.session && sessionRes.session.forecast_data) {
           const sess = sessionRes.session;
           if (sess.timeframe) document.getElementById('timeframeSelect').value = sess.timeframe;
-          if (sess.model_type) document.getElementById('modelSelect').value = sess.model_type;
+          if (sess.model_type && document.getElementById('modelSelect')) document.getElementById('modelSelect').value = sess.model_type;
           updateHorizonLabels(sess.horizon_label);
-          if (sess.sample_count) document.getElementById('sampleCountSelect').value = sess.sample_count;
-          if (sess.seed) document.getElementById('seedInput').value = sess.seed;
+          if (sess.sample_count) safelySetSelectValue('sampleCountSelect', sess.sample_count, '100');
+          if (sess.seed && document.getElementById('seedInput')) document.getElementById('seedInput').value = sess.seed;
 
           handleForecastResult({
             success: true,
